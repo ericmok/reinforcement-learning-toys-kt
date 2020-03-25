@@ -9,38 +9,51 @@ interface Agent {
 }
 
 enum class Action {
-    UP, LEFT, RIGHT, DOWN
+    UP {
+        override fun toChar(): Char = '↑'
+    },
+    LEFT {
+        override fun toChar(): Char = '<'
+    },
+    RIGHT {
+        override fun toChar(): Char = '>'
+    },
+    DOWN {
+        override fun toChar(): Char = '↓'
+    };
+
+    abstract fun toChar(): Char
 }
 
 data class NextStateSample(val state: State, val reward: Double)
 
-class Visit(state: State, var action: Action, var reward: Double) {
+data class Visit(val state: State, val action: Action, var reward: Double) {
 
-    var x: Int = state.x
-    var y: Int = state.y
     var isFirstVisit: Boolean = false
 
     override fun equals(other: Any?): Boolean {
-        if (other !is Visit) {
-            return false
+        if (other is Visit) {
+            if (state == other.state) {
+                return true
+            }
         }
-        return other.x == x && other.y == y
+        return false
     }
 
     override fun hashCode(): Int {
-        return 100_000 * x + y
+        return state.hashCode() * 10_000 + action.hashCode()
     }
 
     override fun toString(): String {
-        return "<${x}, ${y}> ${action} R:${reward} first:${isFirstVisit}>"
+        return "<(${state.x}, ${state.y}) ${action} R:${reward} first:${isFirstVisit}>"
     }
 }
 
-class State(val x: Int, val y: Int) {
+data class State(val x: Int, val y: Int) {
 
     companion object {
         fun fromVisit(visit: Visit): State {
-            return State(visit.x, visit.y)
+            return visit.state.clone()
         }
     }
 
@@ -48,30 +61,68 @@ class State(val x: Int, val y: Int) {
         return State(x, y)
     }
 
-    fun copy(other: State): State {
-        return State(other.x, other.y)
-    }
-
     override fun toString(): String {
         return "(${x}, ${y})"
     }
+}
 
-    override fun equals(other: Any?): Boolean {
-        return other != null &&
-               other is State &&
-               other.x == x &&
-               other.y == y
+class StateAction(var state: State, var action: Action) {
+    override fun hashCode(): Int {
+        return "${state.hashCode()} ${action}".hashCode()
     }
 
-    override fun hashCode(): Int {
-        return (x * 100_000 + y)
+    override fun equals(other: Any?): Boolean {
+        if (other is StateAction) {
+            if (state == other.state && action == other.action) {
+                return true
+            }
+        }
+        return false
+    }
+}
+
+class ProbabilityEvent<T>(val item: T, var weight: Double, var integratedDensity: Double)
+
+class ProbabilityDistribution<T> {
+    val probabilities = ArrayList<ProbabilityEvent<T>>()
+    private var cumulativeWeight: Double = 0.0
+
+    fun setEvents(vararg events: T) {
+        val size = events.size.toDouble()
+
+        events.forEachIndexed { index, element ->
+            probabilities.add(ProbabilityEvent(element, size, index / size))
+        }
+    }
+
+    fun normalize() {
+        cumulativeWeight = probabilities.fold(0.0) {sum, probabilityEvent ->
+            val ret = sum + probabilityEvent.weight
+            probabilityEvent.integratedDensity = ret
+            ret
+        }
+
+//        probabilities.shuffle()
+        probabilities.sortBy { probabilityEvent -> probabilityEvent.integratedDensity }
+    }
+
+    fun sample(): T {
+        val r = Math.random() * cumulativeWeight
+
+        probabilities.forEach { probabilityEvent: ProbabilityEvent<T> ->
+            if (probabilityEvent.integratedDensity >= r) {
+                return probabilityEvent.item
+            }
+        }
+
+        return probabilities[0].item
     }
 }
 
 val OPEN_STATE = ' '
 val STARTING_STATE = '1'
 val ENDING_STATE = '2'
-val WALL = 'x'
+val WALL = '@'
 
 class RaceTrack: Environment {
     val startingStates = ArrayList<State>()
@@ -85,14 +136,18 @@ class RaceTrack: Environment {
 
     fun load() {
         var track = """
-            xxxxxxxxxxxxxxxxxxxxx
-            xx          xx     2x
-            x           xx      x
-            xx                  x
-            x                   x
-            x      xx           x
-            x1     xx           x
-            xxxxxxxxxxxxxxxxxxxxx
+            @@@@@@@@@@@@@@@@@@@@@@
+            @            @@    2 @
+            @            @@      @
+            @            @@      @
+            @            @@      @
+            @                    @
+            @                    @
+            @                    @
+            @     @@             @
+            @     @@             @
+            @ 1   @@             @
+            @@@@@@@@@@@@@@@@@@@@@@
         """.trimIndent()
 
         val lines = track.lines()
@@ -140,9 +195,19 @@ class RaceTrack: Environment {
         fun transitionReward(posX: Int, posY: Int): Double =
             when (boardPositionAt(posX, posY)) {
                 WALL -> -1.5
-                ENDING_STATE -> 100.0
+                ENDING_STATE -> 1.0
                 else -> -1.0
             }
+
+        fun nextStateAs(x: Int, y: Int, nextX: Int, nextY: Int): NextStateSample {
+            val nextState: State = when (boardPositionAt(nextX, nextY)) {
+                WALL -> State(x, y)
+                ENDING_STATE -> State(nextX, nextY)
+                else ->  State(nextX, nextY)
+            }
+
+            return NextStateSample(nextState, transitionReward(nextX, nextY))
+        }
 
         return when (action) {
             Action.UP -> {
@@ -150,57 +215,40 @@ class RaceTrack: Environment {
                 val nextPosY = state.y - 1
 
                 if (state.y == 0) {
-                    return NextStateSample(state, -1.0)
+                    return nextStateAs(state.x, state.y, state.x, state.y)
                 }
 
-                // TODO: Factor out nextState from transitionReward calc
-                if (boardPositionAt(nextPosX, nextPosY) == WALL) {
-                    return NextStateSample(state, transitionReward(nextPosX, nextPosY))
-                }
-
-                NextStateSample(State(nextPosX, nextPosY), transitionReward(nextPosX, nextPosY))
+                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
             }
             Action.DOWN -> {
                 val nextPosX = state.x
                 val nextPosY = state.y + 1
 
                 if (state.y == size.second - 1) {
-                    return NextStateSample(state, -1.0)
+                    return nextStateAs(state.x, state.y, state.x, state.y)
                 }
 
-                if (boardPositionAt(nextPosX, nextPosY) == WALL) {
-                    return NextStateSample(state, transitionReward(nextPosX, nextPosY))
-                }
-
-                NextStateSample(State(nextPosX, nextPosY), transitionReward(nextPosX, nextPosY))
+                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
             }
             Action.LEFT -> {
                 val nextPosX = state.x - 1
                 val nextPosY = state.y
 
                 if (state.x == 0) {
-                    return NextStateSample(state, -1.0)
+                    return nextStateAs(state.x, state.y, state.x, state.y)
                 }
 
-                if (boardPositionAt(nextPosX, nextPosY) == WALL) {
-                    return NextStateSample(state, transitionReward(nextPosX, nextPosY))
-                }
-
-                NextStateSample(State(nextPosX, nextPosY), transitionReward(nextPosX, nextPosY))
+                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
             }
             Action.RIGHT -> {
                 val nextPosX = state.x + 1
                 val nextPosY = state.y
 
                 if (state.x == size.first - 1) {
-                    return NextStateSample(state, -1.0)
+                    return nextStateAs(state.x, state.y, state.x, state.y)
                 }
 
-                if (boardPositionAt(nextPosX, nextPosY) == WALL) {
-                    return NextStateSample(state, transitionReward(nextPosX, nextPosY))
-                }
-
-                NextStateSample(State(nextPosX, nextPosY), transitionReward(nextPosX, nextPosY))
+                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
             }
         }
     }
@@ -223,83 +271,36 @@ class RaceTrack: Environment {
     }
 
     fun drawTrajectory(trajectory: List<Visit>): String {
+        val drawing = ArrayList<StringBuilder>()
+
         val returnString = StringBuilder()
 
-        board.withIndex().forEach { (y, line) ->
-            line.withIndex().forEach { (x, char) ->
+        for ((y, line) in board.withIndex()) {
+            drawing.add(StringBuilder())
 
-                val t = trajectory.find { it.x == x && it.y ==y }
-
-                if (t != null) {
-                    when (t.action) {
-                        Action.UP -> returnString.append("↑") //↑
-                        Action.LEFT -> returnString.append("<") //←
-                        Action.DOWN -> returnString.append("↓") //↓
-                        Action.RIGHT -> returnString.append(">") //→
-                    }
-                } else {
-                    returnString.append(char)
-                }
+            for ((x, char) in line.withIndex()) {
+                drawing[y].append(char)
             }
 
-            returnString.append("\n")
+            drawing[y].append("\n")
+        }
+
+        for (visit in trajectory) {
+            drawing[visit.state.y][visit.state.x] = visit.action.toChar()
+        }
+
+        for (stringBuilder in drawing) {
+            returnString.append(stringBuilder)
         }
 
         return returnString.toString()
     }
 }
 
-class StateAction(var state: State, var action: Action) {
-    override fun hashCode(): Int {
-        return "${state.x} ${state.y} ${action}".hashCode()
-    }
-}
-
-
-class ProbabilityEvent<T>(val item: T, var weight: Double, var integratedDensity: Double)
-
-class ProbabilityDistribution<T> {
-    val probabilities = ArrayList<ProbabilityEvent<T>>()
-    private var cumulativeWeight: Double = 0.0
-
-    fun setEvents(vararg events: T) {
-        val size = events.size.toDouble()
-
-        events.forEachIndexed { index, element ->
-            probabilities.add(ProbabilityEvent(element, size, index / size))
-        }
-    }
-
-    fun normalize() {
-        cumulativeWeight = probabilities.fold(0.0) {sum, probabilityEvent ->
-            val ret = sum + probabilityEvent.weight
-            probabilityEvent.integratedDensity = ret
-            ret
-        }
-
-//        probabilities.shuffle()
-        probabilities.sortBy { probabilityEvent -> probabilityEvent.integratedDensity }
-    }
-
-    fun sample(): T {
-        val r = Math.random() * cumulativeWeight
-
-        probabilities.forEach { probabilityEvent: ProbabilityEvent<T> ->
-            if (probabilityEvent.integratedDensity >= r) {
-                return probabilityEvent.item
-            }
-        }
-
-        return probabilities[0].item
-    }
-}
-
-class Racecar: Agent {
+class Racecar(var gamma: Double = 1.0, var epsilon: Double = 0.5): Agent {
     val q = HashMap<StateAction, Double>()
     val pi = HashMap<State, ProbabilityDistribution<Action>>()
     val returns = HashMap<StateAction, ArrayList<Double>>()
-    var gamma = 0.9
-    var epsilon = 0.2
 
     /**
      * Get probability of action from state.
@@ -346,15 +347,18 @@ class Racecar: Agent {
 
             q[StateAction(State.fromVisit(visit), visit.action)] = returns[sa]!!.average()
 
-            // I need to look for all state actions with a particular state!!!
+            // Look for all state actions with a particular state
             val maxEntry = q.entries.filter { it.key.state == sa.state }.maxBy { it.value }!!
             val maxAction = maxEntry.key.action
 
             val policy = getOrCreatePolicyForState(sa.state)
-            policy.probabilities.find { it.item == maxAction }!!
-                    .weight = 1.0 - epsilon + (epsilon / Action.values().size)
+
             policy.probabilities.forEach {
-                it.weight = epsilon / Action.values().size
+                if (it.item == maxAction) {
+                    it.weight = 1.0 - epsilon + (epsilon / Action.values().size)
+                } else {
+                    it.weight = epsilon / Action.values().size
+                }
             }
             policy.normalize()
 
@@ -368,13 +372,37 @@ class Runner(var raceTrack: RaceTrack, var racecar: Racecar) {
     var firstVisit = hashSetOf<State>()
     var trajectory = ArrayList<Visit>()
 
-    fun runOneEpisode() {
+    fun reset() {
+        trajectory.clear()
+        firstVisit.clear()
+    }
 
-        println("starting states:")
-        for (startingState in raceTrack.startingStates) {
-            print("${startingState} ")
-        }
+    fun printStats() {
         println("")
+        println(raceTrack.drawTrajectory(trajectory.reversed()))
+        println("Trajectory: ${trajectory.size} Steps")
+        println("")
+
+        if (raceTrack.isTerminatingState(trajectory.last().state)) {
+            println("WIN!")
+        }
+
+        for (startingState in raceTrack.startingStates) {
+            for (action in Action.values()) {
+                println("${startingState} ${action} reward: ")
+                println(racecar.returns[StateAction(startingState, action)]?.average() ?: "0.0")
+            }
+        }
+
+        println()
+
+        println("epsilon: ${racecar.epsilon}")
+        println("gamma: ${racecar.gamma}")
+
+        println()
+    }
+
+    fun runOneEpisode() {
 
         var statePointer = raceTrack.getRandomStartingState()
         var maxTime = 10000
@@ -385,8 +413,6 @@ class Runner(var raceTrack: RaceTrack, var racecar: Racecar) {
             val action = racecar.sampleActionFromState(statePointer)
             val nextStateSample = raceTrack.sampleNextStateFromStateAction(statePointer, action)
 
-//            print(nextStateSample)
-
             val visit = Visit(statePointer, action, nextStateSample.reward)
 
             trajectory.add(visit)
@@ -396,57 +422,29 @@ class Runner(var raceTrack: RaceTrack, var racecar: Racecar) {
                 visit.isFirstVisit = true
             }
 
-//            println("${statePointer}: ${action} -> ${nextStateSample.state}")
-//            if (maxTime % 5 == 0) {
-//                println(raceTrack.drawTrajectory(trajectory))
-//            }
-            if (maxTime % 500 == 0) {
-                if (maxTime % 1000 == 0) print("_") else print(".")
-            }
-
             statePointer = nextStateSample.state.clone()
         }
 
-        println("")
-        println(raceTrack.drawTrajectory(trajectory))
-        println("Trajectory: ${trajectory.size} Steps")
-        println("")
-
-        if (raceTrack.isTerminatingState(statePointer)) {
-            println("WIN!")
-//            racecar.epsilon *= 0.9
-        }
-        println(racecar.returns.get(StateAction(State(2,6), Action.UP))?.size)
-
         racecar.improvePolicy(trajectory)
-
-//        println(trajectory)
-
-//
-//        racecar.pi.entries.forEach {
-//            it.value.probabilities.forEach {probabilityEvent: ProbabilityEvent<Action> ->
-//                println("(${it.key.x},${it.key.y}) ${probabilityEvent.item.name} ${probabilityEvent.weight}")
-//            }
-//        }
-//
-//        if (trajectory.size < 100) {
-//            for (visit in trajectory) {
-//                println(visit)
-//            }
-//        }
-
-
-        println("")
-
-        trajectory.clear()
-        firstVisit.clear()
     }
 }
 
 fun main() {
-    var runner = Runner(RaceTrack(), Racecar())
-    for (i in 0..50) {
-        println("======= EPISODE ${i} ==============")
+    var runner = Runner(RaceTrack(), Racecar(epsilon = 0.6))
+    for (i in 0..10_000) {
+
+        // Drop off epsilon as we ramp down
+        if (i >= 8000 && i % 10 == 0) {
+            runner.racecar.epsilon *= 0.95
+        }
+
         runner.runOneEpisode()
+
+        if (i % 1000 == 0) {
+            println("============= EPISODE ${i} =====")
+            runner.printStats()
+        }
+
+        runner.reset()
     }
 }
