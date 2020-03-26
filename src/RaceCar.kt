@@ -1,41 +1,38 @@
 /**
  * Agent for the race track
  */
-class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5): Agent {
+class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5): MCAgent<RaceTrackState, RaceTrackAction> {
 
     /// Q Values
-    val q = HashMap<StateAction, Double>()
+    private val q = HashMap<StateAction<RaceTrackState, RaceTrackAction>, Double>()
 
     /// Policy(state) -> Probability Distribution for action to be taken
-    val pi = HashMap<State, ProbabilityDistribution<Action>>()
+    private val pi = HashMap<RaceTrackState, ProbabilityDistribution<RaceTrackAction>>()
 
     /// Memorize all returns for a StateAction (Q-value)
-    val returns = HashMap<StateAction, ArrayList<Double>>()
+    val returns = HashMap<StateAction<RaceTrackState, RaceTrackAction>, ArrayList<Double>>()
 
     /**
      * Get probability of action from state.
      * Initialize policy to random if first time
      */
-    fun getOrCreatePolicyForState(state: State): ProbabilityDistribution<Action> {
-        return pi.getOrPut(state) {
-            val newProbs = ProbabilityDistribution<Action>()
-            newProbs.setEvents(*Action.values())
+    fun getOrCreatePolicyForState(raceTrackState: RaceTrackState): ProbabilityDistribution<RaceTrackAction> {
+        return pi.getOrPut(raceTrackState) {
+            val newProbs = ProbabilityDistribution<RaceTrackAction>()
+            newProbs.setEvents(*RACETRACK_ACTIONS)
             newProbs.normalize()
             newProbs
         }
     }
 
-    /**
-     * Get q value for stateAction. Set to zero if not exist
-     */
-    fun getOrCreateQValues(stateAction: StateAction): Double {
-        return q.getOrDefault(stateAction, 0.0)
+    override fun actionsForState(state: RaceTrackState): Set<RaceTrackAction> {
+        return setOf(*RACETRACK_ACTIONS)
     }
 
     /**
      * Get an action from internal policy
      */
-    override fun sampleActionFromState(state: State): Action {
+    override fun sampleActionFromState(state: RaceTrackState): RaceTrackAction {
         val actionProbs = getOrCreatePolicyForState(state)
         return actionProbs.sample()
     }
@@ -46,22 +43,22 @@ class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5): Agent {
      * Follows Sutton's On-Policy first-visit MC control algorithm for epsilon-soft policies in his
      * Reinforcement Learning book in Section 5.4
      */
-    fun improvePolicy(trajectory: ArrayList<Visit>) {
+    override fun improvePolicy(trajectory: Collection<Visit<RaceTrackState, RaceTrackAction>>) {
 
-        trajectory.reversed().foldIndexed(0.0) { index, successorReturn, visit ->
+        trajectory.reversed().fold(0.0) { successorReturn, visit ->
             val accumulatedReturn = gamma * successorReturn + visit.reward
 
-            val sa = StateAction(State.fromVisit(visit), visit.action)
+            val sa = StateAction(RaceTrackState.fromVisit(visit), visit.action)
 
             if (!visit.isFirstVisit) {
-                return@foldIndexed accumulatedReturn
+                return@fold accumulatedReturn
             }
 
             returns.getOrPut(sa) {
                 arrayListOf()
             }.add(accumulatedReturn)
 
-            q[StateAction(State.fromVisit(visit), visit.action)] = returns[sa]!!.average()
+            q[StateAction(RaceTrackState.fromVisit(visit), visit.action)] = returns[sa]!!.average()
 
             // Look for all state actions with a particular state
             val maxEntry = q.entries.filter { it.key.state == sa.state }.maxBy { it.value }!!
@@ -71,9 +68,9 @@ class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5): Agent {
 
             policy.probabilities.forEach {
                 if (it.item == maxAction) {
-                    it.weight = 1.0 - epsilon + (epsilon / Action.values().size)
+                    it.weight = 1.0 - epsilon + (epsilon / RACETRACK_ACTIONS.size)
                 } else {
-                    it.weight = epsilon / Action.values().size
+                    it.weight = epsilon / RACETRACK_ACTIONS.size
                 }
             }
             policy.normalize()

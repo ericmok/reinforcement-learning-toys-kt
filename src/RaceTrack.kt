@@ -11,13 +11,13 @@ const val WALL = '@'
  *
  * The track gets automatically loaded on object construction
  */
-class RaceTrack: Environment {
+class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
 
     /// List of starting states on board. Can be multiple. Gets loaded after parsing the board
-    val startingStates = ArrayList<State>()
+    val startingStates = ArrayList<RaceTrackState>()
 
     /// List of ending states on board. Can be multiple. Gets loaded after parsing the board
-    val endingStates = ArrayList<State>()
+    val endingStates = ArrayList<RaceTrackState>()
 
     /**
      * Internal representation of the 2D "RaceTrack" in chars.
@@ -74,10 +74,10 @@ class RaceTrack: Environment {
             val row = Array(sizeX) { x ->
                 when (letters[x]) {
                     STARTING_STATE -> {
-                        startingStates.add(State(x, y))
+                        startingStates.add(RaceTrackState(x, y))
                     }
                     ENDING_STATE -> {
-                        endingStates.add(State(x, y))
+                        endingStates.add(RaceTrackState(x, y))
                     }
                 }
                 letters[x]
@@ -99,15 +99,15 @@ class RaceTrack: Environment {
     /**
      * @return If state is an ending state. (Whether we win)
      */
-    fun isTerminatingState(state: State): Boolean {
-        return (boardPositionAt(state.x, state.y) == ENDING_STATE)
+    fun isTerminatingState(raceTrackState: RaceTrackState): Boolean {
+        return (boardPositionAt(raceTrackState.x, raceTrackState.y) == ENDING_STATE)
     }
 
     /**
      * Encodes environment dynamics and returns the "next state" that would occur
      * if an agent would to make an action at the state.
      */
-    override fun sampleNextStateFromStateAction(state: State, action: Action): NextStateSample {
+    override fun sampleNextStateFromStateAction(raceTrackState: RaceTrackState, actions: RaceTrackAction): NextStateSample<RaceTrackState> {
         fun transitionReward(posX: Int, posY: Int): Double =
             when (boardPositionAt(posX, posY)) {
                 WALL -> -1.5
@@ -115,57 +115,57 @@ class RaceTrack: Environment {
                 else -> -1.0
             }
 
-        fun nextStateAs(x: Int, y: Int, nextX: Int, nextY: Int): NextStateSample {
-            val nextState: State = when (boardPositionAt(nextX, nextY)) {
-                WALL -> State(x, y)
-                ENDING_STATE -> State(nextX, nextY)
-                else ->  State(nextX, nextY)
+        fun nextStateAs(x: Int, y: Int, nextX: Int, nextY: Int): NextStateSample<RaceTrackState> {
+            val nextRaceTrackState: RaceTrackState = when (boardPositionAt(nextX, nextY)) {
+                WALL -> RaceTrackState(x, y)
+                ENDING_STATE -> RaceTrackState(nextX, nextY)
+                else ->  RaceTrackState(nextX, nextY)
             }
 
-            return NextStateSample(nextState, transitionReward(nextX, nextY))
+            return NextStateSample(nextRaceTrackState, transitionReward(nextX, nextY))
         }
 
         // Calculate the would-be next position in environment
-        return when (action) {
-            Action.UP -> {
-                val nextPosX = state.x
-                val nextPosY = state.y - 1
+        return when (actions) {
+            is RACETRACK_ACTION_UP -> {
+                val nextPosX = raceTrackState.x
+                val nextPosY = raceTrackState.y - 1
 
-                if (state.y == 0) {
-                    return nextStateAs(state.x, state.y, state.x, state.y)
+                if (raceTrackState.y == 0) {
+                    return nextStateAs(raceTrackState.x, raceTrackState.y, raceTrackState.x, raceTrackState.y)
                 }
 
-                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
+                return nextStateAs(raceTrackState.x, raceTrackState.y, nextPosX, nextPosY)
             }
-            Action.DOWN -> {
-                val nextPosX = state.x
-                val nextPosY = state.y + 1
+            is RACETRACK_ACTION_DOWN -> {
+                val nextPosX = raceTrackState.x
+                val nextPosY = raceTrackState.y + 1
 
-                if (state.y == size.second - 1) {
-                    return nextStateAs(state.x, state.y, state.x, state.y)
+                if (raceTrackState.y == size.second - 1) {
+                    return nextStateAs(raceTrackState.x, raceTrackState.y, raceTrackState.x, raceTrackState.y)
                 }
 
-                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
+                return nextStateAs(raceTrackState.x, raceTrackState.y, nextPosX, nextPosY)
             }
-            Action.LEFT -> {
-                val nextPosX = state.x - 1
-                val nextPosY = state.y
+            is RACETRACK_ACTION_LEFT -> {
+                val nextPosX = raceTrackState.x - 1
+                val nextPosY = raceTrackState.y
 
-                if (state.x == 0) {
-                    return nextStateAs(state.x, state.y, state.x, state.y)
+                if (raceTrackState.x == 0) {
+                    return nextStateAs(raceTrackState.x, raceTrackState.y, raceTrackState.x, raceTrackState.y)
                 }
 
-                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
+                return nextStateAs(raceTrackState.x, raceTrackState.y, nextPosX, nextPosY)
             }
-            Action.RIGHT -> {
-                val nextPosX = state.x + 1
-                val nextPosY = state.y
+            is RACETRACK_ACTION_RIGHT -> {
+                val nextPosX = raceTrackState.x + 1
+                val nextPosY = raceTrackState.y
 
-                if (state.x == size.first - 1) {
-                    return nextStateAs(state.x, state.y, state.x, state.y)
+                if (raceTrackState.x == size.first - 1) {
+                    return nextStateAs(raceTrackState.x, raceTrackState.y, raceTrackState.x, raceTrackState.y)
                 }
 
-                return nextStateAs(state.x, state.y, nextPosX, nextPosY)
+                return nextStateAs(raceTrackState.x, raceTrackState.y, nextPosX, nextPosY)
             }
         }
     }
@@ -189,14 +189,14 @@ class RaceTrack: Environment {
     /**
      * @return Random state from array of starting states for the loaded board
      */
-    fun getRandomStartingState(): State {
+    fun getRandomStartingState(): RaceTrackState {
         return startingStates.random()
     }
 
     /**
      * @return String pictoral representation of the board with trajectory drawn on top
      */
-    fun drawTrajectoryString(trajectory: List<Visit>): String {
+    fun drawTrajectoryString(trajectory: List<Visit<RaceTrackState, RaceTrackAction>>): String {
         val drawing = ArrayList<StringBuilder>()
 
         val returnString = StringBuilder()
@@ -212,7 +212,7 @@ class RaceTrack: Environment {
         }
 
         for (visit in trajectory) {
-            drawing[visit.state.y][visit.state.x] = visit.action.toChar()
+            drawing[visit.state.y][visit.state.x] = visit.action.char
         }
 
         for (stringBuilder in drawing) {

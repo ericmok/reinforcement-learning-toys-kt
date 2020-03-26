@@ -13,12 +13,12 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
      * Used to keep track of which visits were first to a step within an episode.
      * Should get cleared after playing an episode using reset()
      */
-    var firstVisit = hashSetOf<State>()
+    var firstVisit = hashSetOf<RaceTrackState>()
 
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
      */
-    var trajectory = ArrayList<Visit>()
+    var trajectory = ArrayList<Visit<RaceTrackState, RaceTrackAction>>()
 
     /**
      * Resets trajectory and firstVisit arrays, used for policy improvement
@@ -43,7 +43,7 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
 
         val averages = ArrayList<Double>()
         for (startingState in raceTrack.startingStates) {
-            for (action in Action.values()) {
+            for (action in RACETRACK_ACTIONS) {
                 //println("${startingState} ${action} reward: ")
                 averages.add(raceCar.returns[StateAction(startingState, action)]?.average() ?: -Double.NEGATIVE_INFINITY)
             }

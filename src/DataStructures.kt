@@ -1,30 +1,53 @@
-interface Environment {
-    fun sampleNextStateFromStateAction(state: State, action: Action): NextStateSample
+/**
+ * Environment for RL Tasks.
+ */
+interface Environment<S, A: Action> {
+    fun sampleNextStateFromStateAction(state: S, action: A): NextStateSample<S>
 }
 
-interface Agent {
-    fun sampleActionFromState(state: State): Action
+/**
+ * The decision maker in RL Tasks
+ */
+interface Agent<S, A: Action> {
+    fun sampleActionFromState(state: S): A
+    fun actionsForState(state: S): Set<A>
 }
 
-enum class Action {
-    UP {
-        override fun toChar(): Char = '↑'
-    },
-    LEFT {
-        override fun toChar(): Char = '<'
-    },
-    RIGHT {
-        override fun toChar(): Char = '>'
-    },
-    DOWN {
-        override fun toChar(): Char = '↓'
-    };
-
-    abstract fun toChar(): Char
+/**
+ * Monte Carlo agent learns using trajectory
+ */
+interface MCAgent<S, A: Action>: Agent<S, A> {
+    fun improvePolicy(trajectory: Collection<Visit<S, A>>)
 }
 
-/// Used to represent what the environment returns from a state-action pair
-data class NextStateSample(val state: State, val reward: Double)
+/**
+ * Represents a discrete and countable action in an RL Task.
+ * Extend this with a sealed class to create a new set of actions
+ */
+abstract class Action(open val name: String, open val char: Char) {
+    override fun toString(): String {
+        return name
+    }
+}
+
+/**
+ * State action container. We may associate values to state-actions to figure out an optimal policy
+ */
+class StateAction<S, A: Action>(var state: S, var action: A) {
+    override fun hashCode(): Int {
+        return "${state.hashCode()} ${action}".hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        val o = other as? StateAction<S, A> ?: return false
+        return state == o.state && action == o.action
+    }
+}
+
+/**
+ * Used to represent what the environment returns from a state-action pair
+ */
+data class NextStateSample<S>(val state: S, val reward: Double)
 
 /**
  * A container for state-action pairs and extra data like reward and isFirstVisit to help with handling trajectories
@@ -32,17 +55,13 @@ data class NextStateSample(val state: State, val reward: Double)
  *
  * Think of this as an "Episode Step"
  */
-data class Visit(val state: State, val action: Action, var reward: Double) {
+data class Visit<S, A: Action>(val state: S, val action: A, var reward: Double) {
 
     var isFirstVisit: Boolean = false
 
     override fun equals(other: Any?): Boolean {
-        if (other is Visit) {
-            if (state == other.state) {
-                return true
-            }
-        }
-        return false
+        val o = other as? Visit<S, A> ?: return false
+        return state == o.state
     }
 
     override fun hashCode(): Int {
@@ -50,39 +69,7 @@ data class Visit(val state: State, val action: Action, var reward: Double) {
     }
 
     override fun toString(): String {
-        return "<(${state.x}, ${state.y}) ${action} R:${reward} first:${isFirstVisit}>"
-    }
-}
-
-data class State(val x: Int, val y: Int) {
-
-    companion object {
-        fun fromVisit(visit: Visit): State {
-            return visit.state.clone()
-        }
-    }
-
-    fun clone(): State {
-        return State(x, y)
-    }
-
-    override fun toString(): String {
-        return "(${x}, ${y})"
-    }
-}
-
-class StateAction(var state: State, var action: Action) {
-    override fun hashCode(): Int {
-        return "${state.hashCode()} ${action}".hashCode()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other is StateAction) {
-            if (state == other.state && action == other.action) {
-                return true
-            }
-        }
-        return false
+        return "<(${state}) ${action} R:${reward} first:${isFirstVisit}>"
     }
 }
 
@@ -149,3 +136,35 @@ class ProbabilityDistribution<T> {
         return probabilities[0].item
     }
 }
+
+/**
+ * A RaceTrackState basically is a position on the board
+ */
+data class RaceTrackState(val x: Int, val y: Int) {
+    companion object {
+        fun fromVisit(visit: Visit<RaceTrackState, RaceTrackAction>): RaceTrackState {
+            return visit.state.clone()
+        }
+    }
+
+    fun clone(): RaceTrackState {
+        return RaceTrackState(x, y)
+    }
+
+    override fun toString(): String {
+        return "(${x}, ${y})"
+    }
+}
+
+/**
+ * Sealed class as a container for all actions for the Race Track example
+ */
+sealed class RaceTrackAction(override val name: String, override val char: Char): Action(name, char)
+
+object RACETRACK_ACTION_UP: RaceTrackAction("UP", '↑')
+object RACETRACK_ACTION_LEFT: RaceTrackAction("LEFT", '<')
+object RACETRACK_ACTION_RIGHT: RaceTrackAction("RIGHT", '>')
+object RACETRACK_ACTION_DOWN: RaceTrackAction("DOWN", '↓')
+
+/// Set of all race track actions takeable
+val RACETRACK_ACTIONS = arrayOf(RACETRACK_ACTION_UP, RACETRACK_ACTION_LEFT, RACETRACK_ACTION_RIGHT, RACETRACK_ACTION_DOWN)
