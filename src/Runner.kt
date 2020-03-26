@@ -4,6 +4,12 @@
 class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
 
     /**
+     * A max is required because termination via random walk within a finite time span is NOT guaranteed.
+     * This is one of the drawbacks between Monte Carlo methods and online learning methods like Sarsa.
+     */
+    var maxRunTimeStepsInEpisode = 10000
+
+    /**
      * Used to keep track of which visits were first to a step within an episode.
      * Should get cleared after playing an episode using reset()
      */
@@ -35,12 +41,16 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
             println("WIN!")
         }
 
+        val averages = ArrayList<Double>()
         for (startingState in raceTrack.startingStates) {
             for (action in Action.values()) {
-                println("${startingState} ${action} reward: ")
-                println(raceCar.returns[StateAction(startingState, action)]?.average() ?: "0.0")
+                //println("${startingState} ${action} reward: ")
+                averages.add(raceCar.returns[StateAction(startingState, action)]?.average() ?: -Double.NEGATIVE_INFINITY)
             }
         }
+
+        println("Max starting state return:")
+        println("${averages.max()}")
 
         println()
 
@@ -54,8 +64,9 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
      * Run one episode yielding a trajectory. Also runs policy improvement algorithm
      */
     fun runOneEpisode() {
+        var maxTime = maxRunTimeStepsInEpisode
+
         var statePointer = raceTrack.getRandomStartingState()
-        var maxTime = 10000
 
         while (!raceTrack.isTerminatingState(statePointer) && maxTime > 1) {
             maxTime -= 1
@@ -82,16 +93,29 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
 
 fun main() {
     var runner = Runner(RaceTrack(), RaceCar(epsilon = 0.6))
-    for (i in 0..10_000) {
 
-        // After episode 8000, ramp down epsilon every 10 episodes to move towards greedy policy!
-        if (i >= 8000 && i % 10 == 0) {
-            runner.raceCar.epsilon *= 0.95
+    for (i in 0..8_000) {
+
+        if (i == 6400) {
+            println("================================")
+            println("Here we begin ramping down epsilon to move towards greedy")
         }
+
+        // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
+        if (i >= 6400 && i % 50 == 0) {
+            runner.raceCar.epsilon *= 0.9
+        }
+
 
         runner.runOneEpisode()
 
-        if (i % 1000 == 0) {
+
+        if (i < 100 && i % 20 == 0) {
+            println("============= EPISODE ${i} =====")
+            runner.printStats()
+        }
+
+        if (i % 800 == 0 && i != 0) {
             println("============= EPISODE ${i} =====")
             runner.printStats()
         }

@@ -86,7 +86,7 @@ class RaceTrack: Environment {
             board.add(row)
         }
 
-        print(this)
+        //print(this)
     }
 
     /**
