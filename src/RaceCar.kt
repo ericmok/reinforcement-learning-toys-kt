@@ -1,13 +1,16 @@
 /**
  * Agent for the race track
  */
-class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5): MCAgent<RaceTrackState, RaceTrackAction> {
+class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5, var alpha:Double = 0.1):
+                MCAgent<RaceTrackState, RaceTrackAction>,
+                QLearningAgent<RaceTrackState, RaceTrackAction>,
+                SarsaAgent<RaceTrackState, RaceTrackAction> {
 
     /// Q Values
-    private val q = HashMap<StateAction<RaceTrackState, RaceTrackAction>, Double>()
+    val q = HashMap<StateAction<RaceTrackState, RaceTrackAction>, Double>()
 
     /// Policy(state) -> Probability Distribution for action to be taken
-    private val pi = HashMap<RaceTrackState, ProbabilityDistribution<RaceTrackAction>>()
+    val pi = HashMap<RaceTrackState, ProbabilityDistribution<RaceTrackAction>>()
 
     /// Memorize all returns for a StateAction (Q-value)
     val returns = HashMap<StateAction<RaceTrackState, RaceTrackAction>, ArrayList<Double>>()
@@ -43,7 +46,7 @@ class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5): MCAgent<RaceT
      * Follows Sutton's On-Policy first-visit MC control algorithm for epsilon-soft policies in his
      * Reinforcement Learning book in Section 5.4
      */
-    override fun improvePolicy(trajectory: Collection<Visit<RaceTrackState, RaceTrackAction>>) {
+    override fun improvePolicyWithMonteCarlo(trajectory: Collection<Visit<RaceTrackState, RaceTrackAction>>) {
 
         trajectory.reversed().fold(0.0) { successorReturn, visit ->
             val accumulatedReturn = gamma * successorReturn + visit.reward
@@ -68,14 +71,75 @@ class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5): MCAgent<RaceT
 
             policy.probabilities.forEach {
                 if (it.item == maxAction) {
-                    it.weight = 1.0 - epsilon + (epsilon / RACETRACK_ACTIONS.size)
+                    it.weight = 1.0 - epsilon + (epsilon / actionsForState(sa.state).size)
                 } else {
-                    it.weight = epsilon / RACETRACK_ACTIONS.size
+                    it.weight = epsilon / actionsForState(sa.state).size
                 }
             }
             policy.normalize()
 
             accumulatedReturn
         }
+    }
+
+    override fun improvePolicyWithQLearning(state: RaceTrackState, action: RaceTrackAction, nextStateSample: NextStateSample<RaceTrackState>) {
+        val sa = StateAction(state, action)
+        val saValue = q.getOrPut(sa, {0.0})
+
+        val maxQ: Double = actionsForState(state).map {
+            q.getOrDefault(StateAction(nextStateSample.state, it), 0.0)
+        }.max()!!
+
+        val delta = nextStateSample.reward + gamma * maxQ - saValue
+
+        q[StateAction(state, action)] = saValue + alpha * delta
+
+        val policy = getOrCreatePolicyForState(sa.state)
+
+        val maxAction = policy.probabilities.map {
+            Pair(it, q.getOrDefault(StateAction(state, it.item), Double.NEGATIVE_INFINITY))
+        }.maxBy {
+            it.second
+        }!!.first.item
+
+        for (probability in policy.probabilities) {
+            if (probability.item == maxAction) {
+                probability.weight = 1.0 - epsilon + (epsilon / actionsForState(state).size)
+            } else {
+                probability.weight = epsilon / actionsForState(state).size
+            }
+        }
+        policy.normalize()
+    }
+
+    override fun improvePolicyWithSarsa(
+        state: RaceTrackState,
+        action: RaceTrackAction,
+        nextStateSample: NextStateSample<RaceTrackState>,
+        nextAction: RaceTrackAction
+    ) {
+        val sa = StateAction(state, action)
+
+        val delta = nextStateSample.reward + gamma * q.getOrDefault(StateAction(nextStateSample.state, nextAction), 0.0) - q.getOrPut(sa, { 0.0 })
+
+        q[sa] = q[sa]!! + alpha * delta
+
+        val policy = getOrCreatePolicyForState(sa.state)
+
+        val maxAction = policy.probabilities.map {
+            Pair(it, q.getOrDefault(StateAction(state, it.item), Double.NEGATIVE_INFINITY))
+        }.maxBy {
+            it.second
+        }!!.first.item
+
+        for (probability in policy.probabilities) {
+            if (probability.item == maxAction) {
+                probability.weight = 1.0 - epsilon + (epsilon / actionsForState(state).size)
+            } else {
+                probability.weight = epsilon / actionsForState(state).size
+            }
+        }
+
+        policy.normalize()
     }
 }

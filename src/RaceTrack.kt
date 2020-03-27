@@ -11,7 +11,7 @@ const val WALL = '@'
  *
  * The track gets automatically loaded on object construction
  */
-class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
+open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
 
     /// List of starting states on board. Can be multiple. Gets loaded after parsing the board
     val startingStates = ArrayList<RaceTrackState>()

@@ -17,7 +17,15 @@ interface Agent<S, A: Action> {
  * Monte Carlo agent learns using trajectory
  */
 interface MCAgent<S, A: Action>: Agent<S, A> {
-    fun improvePolicy(trajectory: Collection<Visit<S, A>>)
+    fun improvePolicyWithMonteCarlo(trajectory: Collection<Visit<S, A>>)
+}
+
+interface SarsaAgent<S, A: Action>: Agent<S, A> {
+    fun improvePolicyWithSarsa(state: S, action: A, nextStateSample: NextStateSample<S>, nextAction: A)
+}
+
+interface QLearningAgent<S, A: Action>: Agent<S, A> {
+    fun improvePolicyWithQLearning(state: S, action: A, nextStateSample: NextStateSample<S>)
 }
 
 /**

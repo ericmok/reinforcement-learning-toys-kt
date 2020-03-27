@@ -1,19 +1,13 @@
 /**
- * Monte Carlo Episode / Training Runner
+ * Temporal Difference Episode / Training Runner
  */
-class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
+class SarsaRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
      * This is one of the drawbacks between Monte Carlo methods and online learning methods like Sarsa.
      */
     var maxRunTimeStepsInEpisode = 10000
-
-    /**
-     * Used to keep track of which visits were first to a step within an episode.
-     * Should get cleared after playing an episode using reset()
-     */
-    var firstVisit = hashSetOf<RaceTrackState>()
 
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
@@ -25,7 +19,6 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
      */
     fun reset() {
         trajectory.clear()
-        firstVisit.clear()
     }
 
     /**
@@ -54,6 +47,7 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
 
         println()
 
+        println("alpha: ${raceCar.alpha}")
         println("epsilon: ${raceCar.epsilon}")
         println("gamma: ${raceCar.gamma}")
 
@@ -67,32 +61,29 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
         var maxTime = maxRunTimeStepsInEpisode
 
         var statePointer = raceTrack.getRandomStartingState()
+        var action = raceCar.sampleActionFromState(statePointer)
 
         while (!raceTrack.isTerminatingState(statePointer) && maxTime > 1) {
             maxTime -= 1
 
-            val action = raceCar.sampleActionFromState(statePointer)
             val nextStateSample = raceTrack.sampleNextStateFromStateAction(statePointer, action)
+            val nextAction = raceCar.sampleActionFromState(nextStateSample.state)
 
             val visit = Visit(statePointer, action, nextStateSample.reward)
-
             trajectory.add(visit)
 
-            if (!firstVisit.contains(statePointer)) {
-                firstVisit.add(statePointer)
-                visit.isFirstVisit = true
-            }
+            raceCar.improvePolicyWithSarsa(statePointer, action, nextStateSample, nextAction)
 
             statePointer = nextStateSample.state.clone()
+            action = nextAction
         }
 
-        raceCar.improvePolicyWithMonteCarlo(trajectory)
     }
 }
 
 
 fun main() {
-    var runner = Runner(RaceTrack(), RaceCar(epsilon = 0.6))
+    var runner = SarsaRunner(RaceTrack(), RaceCar(epsilon = 0.5))
 
     for (i in 0..8_000) {
 

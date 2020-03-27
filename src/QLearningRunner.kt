@@ -1,19 +1,13 @@
 /**
- * Monte Carlo Episode / Training Runner
+ * Temporal Difference Episode / Training Runner
  */
-class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
+class QLearningRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
      * This is one of the drawbacks between Monte Carlo methods and online learning methods like Sarsa.
      */
     var maxRunTimeStepsInEpisode = 10000
-
-    /**
-     * Used to keep track of which visits were first to a step within an episode.
-     * Should get cleared after playing an episode using reset()
-     */
-    var firstVisit = hashSetOf<RaceTrackState>()
 
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
@@ -25,7 +19,6 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
      */
     fun reset() {
         trajectory.clear()
-        firstVisit.clear()
     }
 
     /**
@@ -41,21 +34,15 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
             println("WIN!")
         }
 
-        val averages = ArrayList<Double>()
-        for (startingState in raceTrack.startingStates) {
-            for (action in RACETRACK_ACTIONS) {
-                //println("${startingState} ${action} reward: ")
-                averages.add(raceCar.returns[StateAction(startingState, action)]?.average() ?: -Double.NEGATIVE_INFINITY)
-            }
+        for (racetrackAction in RACETRACK_ACTIONS) {
+            println(raceCar.q.getOrDefault(StateAction(raceTrack.startingStates[0], racetrackAction), 0.0))
         }
-
-        println("Max starting state return:")
-        println("${averages.max()}")
 
         println()
 
         println("epsilon: ${raceCar.epsilon}")
         println("gamma: ${raceCar.gamma}")
+        println("alpha: ${raceCar.alpha}")
 
         println()
     }
@@ -75,35 +62,32 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
             val nextStateSample = raceTrack.sampleNextStateFromStateAction(statePointer, action)
 
             val visit = Visit(statePointer, action, nextStateSample.reward)
-
             trajectory.add(visit)
 
-            if (!firstVisit.contains(statePointer)) {
-                firstVisit.add(statePointer)
-                visit.isFirstVisit = true
-            }
+            raceCar.improvePolicyWithQLearning(statePointer, action, nextStateSample)
 
             statePointer = nextStateSample.state.clone()
         }
-
-        raceCar.improvePolicyWithMonteCarlo(trajectory)
     }
 }
 
 
 fun main() {
-    var runner = Runner(RaceTrack(), RaceCar(epsilon = 0.6))
+    var runner = QLearningRunner(RaceTrack(), RaceCar(epsilon = 0.3, alpha = 0.5))
 
-    for (i in 0..8_000) {
+    for (i in 0..800) {
 
         if (i == 6400) {
             println("================================")
             println("Here we begin ramping down epsilon to move towards greedy")
         }
 
+        runner.raceCar.alpha *= 0.9995
+
         // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
         if (i >= 6400 && i % 50 == 0) {
-            runner.raceCar.epsilon *= 0.9
+            runner.raceCar.epsilon *= 0.98
+            //runner.raceCar.alpha *= 0.99
         }
 
 
