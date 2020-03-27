@@ -1,11 +1,24 @@
-A repo for an exercise from Sutton & Barto's Reinforcement Learning book (Chapter 5: Monte Carlo Methods)
+A repo for programming exercises to help me learn from Sutton & Barto's Reinforcement Learning book 
 
-Exercise 5.12 Racetrack
-Driving a race car around a track.
+This project presents implementations of several reinforcement learning algorithms using
+Monte Carlo methods and temporal difference methods including "Sarsa" and Q Learning as described in the book.
 
-This exercise helps illustrate the use of Monte Carlo methods in solving a reinforcement learning problems.
-Through random trajectory sampling, we can derive a usable estimate for the value of actions for many states and
-thus get a policy.
+With Monte Carlo methods, through random trajectory sampling, we can derive a usable estimate for the value of actions 
+for many states and thus get a policy.
+
+Sarsa and Q Learning updates the values of state-actions without needing a full trajectory, restricting updates to
+temporally local information.
+
+With any of these methods, an optimal policy can be found as long as we can sample long enough.
+
+With the current implementation, I am seeing that both Sarsa and Q Learning are dramatically faster than the Monte Carlo
+method. I'm not sure if I've made a mistake.
+
+
+### The Task
+
+The book presents a reinforcement learning task in Chapter 5, Exercise 5.12
+**Driving a race car around a track**
 
 There is a track bounded by walls ("@").
 A car in the track starts at the lower left ("1")
@@ -41,8 +54,7 @@ nor is there a random acceleration failure.
 
 I might add these later :)
 
-Have a look at the Sample Run for longer trace
-
+Here's an cutoff example output running the Monte Carlo Agent:
 
 ```
 
@@ -206,3 +218,7 @@ epsilon: 0.018541892629579577
 gamma: 1.0
 
 ```
+
+
+### What's missing
+I haven't implemented importance sampling or various other discounting methods described in Chapter 5. 
