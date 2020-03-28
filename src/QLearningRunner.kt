@@ -1,7 +1,7 @@
 /**
- * Temporal Difference Episode / Training Runner
+ * Q Learning Runner
  */
-class QLearningRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
+class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: QLearningAgent<S, A>) {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -12,7 +12,7 @@ class QLearningRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
      */
-    var trajectory = ArrayList<Visit<RaceTrackState, RaceTrackAction>>()
+    var trajectory = ArrayList<Visit<S, A>>()
 
     /**
      * Resets trajectory and firstVisit arrays, used for policy improvement
@@ -26,23 +26,23 @@ class QLearningRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
      */
     fun printStats() {
         println("")
-        println(raceTrack.drawTrajectoryString(trajectory.reversed()))
+        println(environment.getDrawTrajectoryString(trajectory.reversed()))
         println("Trajectory: ${trajectory.size} Steps")
         println("")
 
-        if (raceTrack.isTerminatingState(trajectory.last().state)) {
-            println("WIN!")
+        if (environment.isTerminatingState(trajectory.last().state)) {
+            println("Termination was reached!")
         }
 
-        for (racetrackAction in RACETRACK_ACTIONS) {
-            println(raceCar.q.getOrDefault(StateAction(raceTrack.startingStates[0], racetrackAction), 0.0))
-        }
+//        for (racetrackAction in RACETRACK_ACTIONS) {
+//            println(raceCar.q.getOrDefault(StateAction(raceTrack.startingStates[0], racetrackAction), 0.0))
+//        }
 
         println()
 
-        println("epsilon: ${raceCar.epsilon}")
-        println("gamma: ${raceCar.gamma}")
-        println("alpha: ${raceCar.alpha}")
+        println("epsilon: ${agent.epsilon}")
+        println("gamma: ${agent.gamma}")
+        println("alpha: ${agent.alpha}")
 
         println()
     }
@@ -53,18 +53,18 @@ class QLearningRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
     fun runOneEpisode() {
         var maxTime = maxRunTimeStepsInEpisode
 
-        var statePointer = raceTrack.getRandomStartingState()
+        var statePointer = environment.restartForNextEpisode()
 
-        while (!raceTrack.isTerminatingState(statePointer) && maxTime > 1) {
+        while (!environment.isTerminatingState(statePointer) && maxTime > 1) {
             maxTime -= 1
 
-            val action = raceCar.sampleActionFromState(statePointer)
-            val nextStateSample = raceTrack.sampleNextStateFromStateAction(statePointer, action)
+            val action = agent.sampleActionFromState(statePointer)
+            val nextStateSample = environment.sampleNextStateFromStateAction(statePointer, action)
 
             val visit = Visit(statePointer, action, nextStateSample.reward)
             trajectory.add(visit)
 
-            raceCar.improvePolicyWithQLearning(statePointer, action, nextStateSample)
+            agent.improvePolicyWithQLearning(statePointer, action, nextStateSample)
 
             statePointer = nextStateSample.state.clone()
         }
@@ -75,21 +75,13 @@ class QLearningRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
 fun main() {
     var runner = QLearningRunner(RaceTrack(), RaceCar(epsilon = 0.3, alpha = 0.5))
 
-    for (i in 0..800) {
-
-        if (i == 6400) {
-            println("================================")
-            println("Here we begin ramping down epsilon to move towards greedy")
-        }
-
-        runner.raceCar.alpha *= 0.9995
+    for (i in 0..6400) {
+        runner.agent.alpha *= 0.9995
 
         // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
-        if (i >= 6400 && i % 50 == 0) {
-            runner.raceCar.epsilon *= 0.98
-            //runner.raceCar.alpha *= 0.99
+        if (i >= 4800 && i % 50 == 0) {
+            runner.agent.epsilon *= 0.98
         }
-
 
         runner.runOneEpisode()
 

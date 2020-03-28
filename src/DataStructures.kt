@@ -1,30 +1,86 @@
 /**
- * Environment for RL Tasks.
+ * State within environment
  */
-interface Environment<S, A: Action> {
-    fun sampleNextStateFromStateAction(state: S, action: A): NextStateSample<S>
+interface State
+
+fun <S : State> S.clone(): S {
+    return this
 }
 
 /**
  * The decision maker in RL Tasks
  */
-interface Agent<S, A: Action> {
+interface Agent<S: State, A: Action> {
+    /// Q Values
+    val q: HashMap<StateAction<S, A>, Double>
+
+    /// Policy(state) -> Probability Distribution for action to be taken
+    val pi: HashMap<S, ProbabilityDistribution<A>>
+
     fun sampleActionFromState(state: S): A
     fun actionsForState(state: S): Set<A>
 }
 
 /**
+ * Environment for RL Tasks.
+ */
+interface Environment<S: State, A: Action> {
+
+    val startingStates: ArrayList<S>
+    val endingStates: ArrayList<S>
+
+    /**
+     * Restart environment. New start may be a function of a state.
+     */
+    fun restartForNextEpisode(state: S? = null): S
+
+    /**
+     * @return Is the state the end of the episode?
+     */
+    fun isTerminatingState(state: S): Boolean
+
+    /**
+     * @return The next state as a function of a state and action
+     */
+    fun sampleNextStateFromStateAction(state: S, action: A): NextStateSample<S>
+
+    /**
+     * @return A println friendly string to show the trajectory in the environment in 2D
+     */
+    fun getDrawTrajectoryString(trajectory: Collection<Visit<S, A>>): String
+}
+
+/**
  * Monte Carlo agent learns using trajectory
  */
-interface MCAgent<S, A: Action>: Agent<S, A> {
+interface MCAgent<S: State, A: Action>: Agent<S, A> {
+    var epsilon: Double
+    var gamma: Double
+
+    val returns: HashMap<StateAction<S, A>, ArrayList<Double>>
+
     fun improvePolicyWithMonteCarlo(trajectory: Collection<Visit<S, A>>)
 }
 
-interface SarsaAgent<S, A: Action>: Agent<S, A> {
+/**
+ * Sarsa agent learns using trajectory
+ */
+interface SarsaAgent<S: State, A: Action>: Agent<S, A> {
+    var epsilon: Double
+    var gamma: Double
+    var alpha: Double
+
     fun improvePolicyWithSarsa(state: S, action: A, nextStateSample: NextStateSample<S>, nextAction: A)
 }
 
-interface QLearningAgent<S, A: Action>: Agent<S, A> {
+/**
+ * QLearning
+ */
+interface QLearningAgent<S: State, A: Action>: Agent<S, A> {
+    var epsilon: Double
+    var gamma: Double
+    var alpha: Double
+
     fun improvePolicyWithQLearning(state: S, action: A, nextStateSample: NextStateSample<S>)
 }
 
@@ -41,7 +97,7 @@ abstract class Action(open val name: String, open val char: Char) {
 /**
  * State action container. We may associate values to state-actions to figure out an optimal policy
  */
-class StateAction<S, A: Action>(var state: S, var action: A) {
+class StateAction<S: State, A: Action>(var state: S, var action: A) {
     override fun hashCode(): Int {
         return "${state.hashCode()} ${action}".hashCode()
     }
@@ -55,7 +111,7 @@ class StateAction<S, A: Action>(var state: S, var action: A) {
 /**
  * Used to represent what the environment returns from a state-action pair
  */
-data class NextStateSample<S>(val state: S, val reward: Double)
+data class NextStateSample<S: State>(val state: S, val reward: Double)
 
 /**
  * A container for state-action pairs and extra data like reward and isFirstVisit to help with handling trajectories
@@ -63,7 +119,7 @@ data class NextStateSample<S>(val state: S, val reward: Double)
  *
  * Think of this as an "Episode Step"
  */
-data class Visit<S, A: Action>(val state: S, val action: A, var reward: Double) {
+data class Visit<S: State, A: Action>(val state: S, val action: A, var reward: Double) {
 
     var isFirstVisit: Boolean = false
 
@@ -148,7 +204,7 @@ class ProbabilityDistribution<T> {
 /**
  * A RaceTrackState basically is a position on the board
  */
-data class RaceTrackState(val x: Int, val y: Int) {
+data class RaceTrackState(val x: Int, val y: Int): State {
     companion object {
         fun fromVisit(visit: Visit<RaceTrackState, RaceTrackAction>): RaceTrackState {
             return visit.state.clone()

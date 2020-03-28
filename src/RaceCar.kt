@@ -1,19 +1,21 @@
 /**
  * Agent for the race track
  */
-class RaceCar(var gamma: Double = 1.0, var epsilon: Double = 0.5, var alpha:Double = 0.1):
+class RaceCar(override var gamma: Double = 1.0,
+              override var epsilon: Double = 0.5,
+              override var alpha:Double = 0.1):
                 MCAgent<RaceTrackState, RaceTrackAction>,
                 QLearningAgent<RaceTrackState, RaceTrackAction>,
                 SarsaAgent<RaceTrackState, RaceTrackAction> {
 
     /// Q Values
-    val q = HashMap<StateAction<RaceTrackState, RaceTrackAction>, Double>()
+    override val q = HashMap<StateAction<RaceTrackState, RaceTrackAction>, Double>()
 
     /// Policy(state) -> Probability Distribution for action to be taken
-    val pi = HashMap<RaceTrackState, ProbabilityDistribution<RaceTrackAction>>()
+    override val pi = HashMap<RaceTrackState, ProbabilityDistribution<RaceTrackAction>>()
 
     /// Memorize all returns for a StateAction (Q-value)
-    val returns = HashMap<StateAction<RaceTrackState, RaceTrackAction>, ArrayList<Double>>()
+    override val returns = HashMap<StateAction<RaceTrackState, RaceTrackAction>, ArrayList<Double>>()
 
     /**
      * Get probability of action from state.

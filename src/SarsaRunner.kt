@@ -1,7 +1,7 @@
 /**
  * Temporal Difference Episode / Training Runner
  */
-class SarsaRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
+class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: SarsaAgent<S, A>) {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -12,7 +12,7 @@ class SarsaRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
      */
-    var trajectory = ArrayList<Visit<RaceTrackState, RaceTrackAction>>()
+    var trajectory = ArrayList<Visit<S, A>>()
 
     /**
      * Resets trajectory and firstVisit arrays, used for policy improvement
@@ -26,30 +26,19 @@ class SarsaRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
      */
     fun printStats() {
         println("")
-        println(raceTrack.drawTrajectoryString(trajectory.reversed()))
+        println(environment.getDrawTrajectoryString(trajectory.reversed()))
         println("Trajectory: ${trajectory.size} Steps")
         println("")
 
-        if (raceTrack.isTerminatingState(trajectory.last().state)) {
+        if (environment.isTerminatingState(trajectory.last().state)) {
             println("WIN!")
         }
 
-        val averages = ArrayList<Double>()
-        for (startingState in raceTrack.startingStates) {
-            for (action in RACETRACK_ACTIONS) {
-                //println("${startingState} ${action} reward: ")
-                averages.add(raceCar.returns[StateAction(startingState, action)]?.average() ?: -Double.NEGATIVE_INFINITY)
-            }
-        }
-
-        println("Max starting state return:")
-        println("${averages.max()}")
-
         println()
 
-        println("alpha: ${raceCar.alpha}")
-        println("epsilon: ${raceCar.epsilon}")
-        println("gamma: ${raceCar.gamma}")
+        println("alpha: ${agent.alpha}")
+        println("epsilon: ${agent.epsilon}")
+        println("gamma: ${agent.gamma}")
 
         println()
     }
@@ -60,19 +49,19 @@ class SarsaRunner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
     fun runOneEpisode() {
         var maxTime = maxRunTimeStepsInEpisode
 
-        var statePointer = raceTrack.getRandomStartingState()
-        var action = raceCar.sampleActionFromState(statePointer)
+        var statePointer = environment.restartForNextEpisode()
+        var action = agent.sampleActionFromState(statePointer)
 
-        while (!raceTrack.isTerminatingState(statePointer) && maxTime > 1) {
+        while (!environment.isTerminatingState(statePointer) && maxTime > 1) {
             maxTime -= 1
 
-            val nextStateSample = raceTrack.sampleNextStateFromStateAction(statePointer, action)
-            val nextAction = raceCar.sampleActionFromState(nextStateSample.state)
+            val nextStateSample = environment.sampleNextStateFromStateAction(statePointer, action)
+            val nextAction = agent.sampleActionFromState(nextStateSample.state)
 
             val visit = Visit(statePointer, action, nextStateSample.reward)
             trajectory.add(visit)
 
-            raceCar.improvePolicyWithSarsa(statePointer, action, nextStateSample, nextAction)
+            agent.improvePolicyWithSarsa(statePointer, action, nextStateSample, nextAction)
 
             statePointer = nextStateSample.state.clone()
             action = nextAction
@@ -94,7 +83,7 @@ fun main() {
 
         // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
         if (i >= 6400 && i % 50 == 0) {
-            runner.raceCar.epsilon *= 0.9
+            runner.agent.epsilon *= 0.9
         }
 
 

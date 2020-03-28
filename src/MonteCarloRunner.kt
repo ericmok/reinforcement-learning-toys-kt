@@ -1,7 +1,7 @@
 /**
  * Monte Carlo Episode / Training Runner
  */
-class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
+class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: MCAgent<S, A>) {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -13,12 +13,12 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
      * Used to keep track of which visits were first to a step within an episode.
      * Should get cleared after playing an episode using reset()
      */
-    var firstVisit = hashSetOf<RaceTrackState>()
+    var firstVisit = hashSetOf<S>()
 
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
      */
-    var trajectory = ArrayList<Visit<RaceTrackState, RaceTrackAction>>()
+    var trajectory = ArrayList<Visit<S, A>>()
 
     /**
      * Resets trajectory and firstVisit arrays, used for policy improvement
@@ -31,32 +31,18 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
     /**
      * Prints the trajectory taken on the track as well as other info
      */
-    fun printStats() {
-        println("")
-        println(raceTrack.drawTrajectoryString(trajectory.reversed()))
+    open fun printStats() {
+        println()
+        println(environment.getDrawTrajectoryString(trajectory.reversed()))
         println("Trajectory: ${trajectory.size} Steps")
-        println("")
-
-        if (raceTrack.isTerminatingState(trajectory.last().state)) {
-            println("WIN!")
-        }
-
-        val averages = ArrayList<Double>()
-        for (startingState in raceTrack.startingStates) {
-            for (action in RACETRACK_ACTIONS) {
-                //println("${startingState} ${action} reward: ")
-                averages.add(raceCar.returns[StateAction(startingState, action)]?.average() ?: -Double.NEGATIVE_INFINITY)
-            }
-        }
-
-        println("Max starting state return:")
-        println("${averages.max()}")
-
         println()
 
-        println("epsilon: ${raceCar.epsilon}")
-        println("gamma: ${raceCar.gamma}")
+        if (environment.isTerminatingState(trajectory.last().state)) {
+            println("Termination found!")
+        }
 
+        println("epsilon: ${agent.epsilon}")
+        println("gamma: ${agent.gamma}")
         println()
     }
 
@@ -66,13 +52,13 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
     fun runOneEpisode() {
         var maxTime = maxRunTimeStepsInEpisode
 
-        var statePointer = raceTrack.getRandomStartingState()
+        var statePointer = environment.restartForNextEpisode()
 
-        while (!raceTrack.isTerminatingState(statePointer) && maxTime > 1) {
+        while (!environment.isTerminatingState(statePointer) && maxTime > 1) {
             maxTime -= 1
 
-            val action = raceCar.sampleActionFromState(statePointer)
-            val nextStateSample = raceTrack.sampleNextStateFromStateAction(statePointer, action)
+            val action = agent.sampleActionFromState(statePointer)
+            val nextStateSample = environment.sampleNextStateFromStateAction(statePointer, action)
 
             val visit = Visit(statePointer, action, nextStateSample.reward)
 
@@ -86,13 +72,13 @@ class Runner(var raceTrack: RaceTrack, var raceCar: RaceCar) {
             statePointer = nextStateSample.state.clone()
         }
 
-        raceCar.improvePolicyWithMonteCarlo(trajectory)
+        agent.improvePolicyWithMonteCarlo(trajectory)
     }
 }
 
 
 fun main() {
-    var runner = Runner(RaceTrack(), RaceCar(epsilon = 0.6))
+    var runner = MonteCarloRunner(RaceTrack(), RaceCar(epsilon = 0.6))
 
     for (i in 0..8_000) {
 
@@ -103,7 +89,7 @@ fun main() {
 
         // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
         if (i >= 6400 && i % 50 == 0) {
-            runner.raceCar.epsilon *= 0.9
+            runner.agent.epsilon *= 0.9
         }
 
 

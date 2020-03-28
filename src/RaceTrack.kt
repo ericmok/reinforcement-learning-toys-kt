@@ -14,10 +14,10 @@ const val WALL = '@'
 open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
 
     /// List of starting states on board. Can be multiple. Gets loaded after parsing the board
-    val startingStates = ArrayList<RaceTrackState>()
+    override val startingStates = ArrayList<RaceTrackState>()
 
     /// List of ending states on board. Can be multiple. Gets loaded after parsing the board
-    val endingStates = ArrayList<RaceTrackState>()
+    override val endingStates = ArrayList<RaceTrackState>()
 
     /**
      * Internal representation of the 2D "RaceTrack" in chars.
@@ -99,7 +99,7 @@ open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
     /**
      * @return If state is an ending state. (Whether we win)
      */
-    fun isTerminatingState(raceTrackState: RaceTrackState): Boolean {
+    override fun isTerminatingState(raceTrackState: RaceTrackState): Boolean {
         return (boardPositionAt(raceTrackState.x, raceTrackState.y) == ENDING_STATE)
     }
 
@@ -194,9 +194,16 @@ open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
     }
 
     /**
+     * @return Random starting state
+     */
+    override fun restartForNextEpisode(state: RaceTrackState?): RaceTrackState {
+        return getRandomStartingState()
+    }
+
+    /**
      * @return String pictoral representation of the board with trajectory drawn on top
      */
-    fun drawTrajectoryString(trajectory: List<Visit<RaceTrackState, RaceTrackAction>>): String {
+    override fun getDrawTrajectoryString(trajectory: Collection<Visit<RaceTrackState, RaceTrackAction>>): String {
         val drawing = ArrayList<StringBuilder>()
 
         val returnString = StringBuilder()
@@ -221,4 +228,5 @@ open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
 
         return returnString.toString()
     }
+
 }
