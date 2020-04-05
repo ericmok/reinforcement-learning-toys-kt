@@ -69,37 +69,3 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
 
     }
 }
-
-
-fun main() {
-    var runner = SarsaRunner(RaceTrack(), RaceCar(epsilon = 0.5))
-
-    for (i in 0..8_000) {
-
-        if (i == 6400) {
-            println("================================")
-            println("Here we begin ramping down epsilon to move towards greedy")
-        }
-
-        // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
-        if (i >= 6400 && i % 50 == 0) {
-            runner.agent.epsilon *= 0.9
-        }
-
-
-        runner.runOneEpisode()
-
-
-        if (i < 100 && i % 20 == 0) {
-            println("============= EPISODE ${i} =====")
-            runner.printStats()
-        }
-
-        if (i % 800 == 0 && i != 0) {
-            println("============= EPISODE ${i} =====")
-            runner.printStats()
-        }
-
-        runner.reset()
-    }
-}

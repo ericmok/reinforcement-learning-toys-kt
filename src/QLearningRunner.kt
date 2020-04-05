@@ -70,32 +70,3 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
         }
     }
 }
-
-
-fun main() {
-    var runner = QLearningRunner(RaceTrack(), RaceCar(epsilon = 0.3, alpha = 0.5))
-
-    for (i in 0..6400) {
-        runner.agent.alpha *= 0.9995
-
-        // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
-        if (i >= 4800 && i % 50 == 0) {
-            runner.agent.epsilon *= 0.98
-        }
-
-        runner.runOneEpisode()
-
-
-        if (i < 100 && i % 20 == 0) {
-            println("============= EPISODE ${i} =====")
-            runner.printStats()
-        }
-
-        if (i % 800 == 0 && i != 0) {
-            println("============= EPISODE ${i} =====")
-            runner.printStats()
-        }
-
-        runner.reset()
-    }
-}
