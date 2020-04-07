@@ -4,14 +4,7 @@
 abstract class MonteCarloAgent<S: State, A: Action>(var gamma: Double = 1.0,
                                                     var epsilon: Double = 0.5): Agent<S, A> {
 
-    /**
-     * Q Values
-     */
     override val q = HashMap<StateAction<S, A>, Double>()
-
-    /**
-     * Policy(state) -> Probability Distribution for action to be taken
-     */
     override val pi = HashMap<S, ProbabilityDistribution<A>>()
 
     /**

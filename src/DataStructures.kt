@@ -11,10 +11,15 @@ fun <S : State> S.clone(): S {
  * The decision maker in RL Tasks
  */
 interface Agent<S: State, A: Action> {
-    /// Q Values
+
+    /**
+     * Q Values
+     */
     val q: HashMap<StateAction<S, A>, Double>
 
-    /// Policy(state) -> Probability Distribution for action to be taken
+    /**
+     * Policy(state) -> Probability Distribution for action to be taken
+     */
     val pi: HashMap<S, ProbabilityDistribution<A>>
 
     fun sampleActionFromState(state: S): A
