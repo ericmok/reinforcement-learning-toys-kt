@@ -19,6 +19,26 @@ const val STARTING_STATE = '1'
 const val ENDING_STATE = '2'
 const val WALL = '@'
 
+
+/**
+ * A RaceTrackState basically is a position on the board
+ */
+data class RaceTrackState(val x: Int, val y: Int): State {
+    companion object {
+        fun fromVisit(visit: Visit<RaceTrackState, RaceTrackAction>): RaceTrackState {
+            return visit.state.clone()
+        }
+    }
+
+    fun clone(): RaceTrackState {
+        return RaceTrackState(x, y)
+    }
+
+    override fun toString(): String {
+        return "(${x}, ${y})"
+    }
+}
+
 /**
  * "RaceTrack" or maze for an agent to run from start to finish in as few time steps as possible.
  * This is a rough, partial implementation of Sutton's Reinforcement Learning book's Programming Exercise 5.12
