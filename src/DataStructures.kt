@@ -1,3 +1,5 @@
+import kotlin.random.Random
+
 /**
  * State within environment
  */
@@ -160,7 +162,7 @@ class ProbabilityDistribution<T> {
      * Bigger the partition of A, more likely it will be chosen
      */
     fun sample(): T {
-        val r = Math.random() * cumulativeWeight
+        val r = Random.nextDouble() * cumulativeWeight
 
         probabilities.forEach { probabilityEvent: ProbabilityEvent<T> ->
             if (probabilityEvent.integratedDensity >= r) {
