@@ -10,16 +10,14 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
     var maxRunTimeStepsInEpisode = 10000
 
     /**
-     * Stores one episode's trajectory. Should get cleared after each episode, using reset()
+     * Current state for agent when  start(), step(), stop() methods are used
      */
-    var trajectory = ArrayList<Visit<S, A>>()
+    var currentState: S = environment.restartForNextEpisode()
 
     /**
-     * Resets trajectory and firstVisit arrays, used for policy improvement
+     * Stores one episode's trajectory. Should get cleared after each episode, using reset()
      */
-    fun reset() {
-        trajectory.clear()
-    }
+    var trajectory = Trajectory<S, A>()
 
     /**
      * Prints the trajectory taken on the track as well as other info
@@ -48,9 +46,45 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
     }
 
     /**
+     * Start a new episode to step through. Trajectory is cleared and current state is initialized.
+     */
+    fun start() {
+        trajectory.clear()
+        currentState = environment.restartForNextEpisode(currentState)
+    }
+
+    /**
+     * Take next step through current episode by having agent act in environment.
+     * Runs Q-Learning algorithm from immediate experience of the step
+     * Should call start() first before calling this.
+     * Call canStillStep() before stepping to see if you can still step
+     */
+    fun step() {
+        val action = agent.sampleActionFromState(currentState)
+        val nextStateSample = environment.sampleNextStateFromStateAction(currentState, action)
+        trajectory.add(currentState, action, nextStateSample.reward)
+        currentState = nextStateSample.state.clone()
+        agent.improvePolicy(currentState, action, nextStateSample)
+    }
+
+    /**
+     * @return If current state in current episode is in a terminating state in environment
+     */
+    fun canStillStep(): Boolean {
+        return !environment.isTerminatingState(currentState)
+    }
+
+    /**
+     * Does nothing, since agent learns during stepping
+     */
+    fun end() {}
+
+
+    /**
      * Run one episode yielding a trajectory. Also runs policy improvement algorithm
      */
     fun runOneEpisode() {
+        trajectory.clear()
         var maxTime = maxRunTimeStepsInEpisode
 
         var statePointer = environment.restartForNextEpisode()
@@ -61,10 +95,9 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
             val action = agent.sampleActionFromState(statePointer)
             val nextStateSample = environment.sampleNextStateFromStateAction(statePointer, action)
 
-            val visit = Visit(statePointer, action, nextStateSample.reward)
-            trajectory.add(visit)
+            trajectory.add(statePointer, action, nextStateSample.reward)
 
-            agent.improvePolicyWithQLearning(statePointer, action, nextStateSample)
+            agent.improvePolicy(statePointer, action, nextStateSample)
 
             statePointer = nextStateSample.state.clone()
         }

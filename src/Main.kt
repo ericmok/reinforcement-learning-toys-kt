@@ -1,6 +1,24 @@
+/**
+ * An example of using a runner via step functions
+ */
+fun stepWiseSarsa() {
+    var runner = SarsaRunner(RaceTrack(), RacecarSarsaAgent(epsilon = 0.5))
+
+    for (i in 0..1000) {
+        runner.start()
+        while (runner.canStillStep()) {
+            runner.step()
+        }
+        if (i % 100 == 0) {
+            print("======= Episode $i =====")
+            runner.printStats()
+        }
+        runner.end()
+    }
+}
 
 fun doMonteCarloExperiment() {
-    var runner = MonteCarloRunner(RaceTrack(), RaceCar(epsilon = 0.6))
+    var runner = MonteCarloRunner(RaceTrack(), RacecarMonteCarloAgent(epsilon = 0.5))
 
     for (i in 0..8_000) {
 
@@ -11,12 +29,10 @@ fun doMonteCarloExperiment() {
 
         // After some episodes, ramp down epsilon every 10 episodes to move towards greedy policy!
         if (i >= 6400 && i % 50 == 0) {
-            runner.agent.epsilon *= 0.9
+            runner.agent.epsilon *= 0.95
         }
 
-
         runner.runOneEpisode()
-
 
         if (i < 100 && i % 20 == 0) {
             println("============= EPISODE ${i} =====")
@@ -27,13 +43,11 @@ fun doMonteCarloExperiment() {
             println("============= EPISODE ${i} =====")
             runner.printStats()
         }
-
-        runner.reset()
     }
 }
 
 fun doQLearningExperiment() {
-    var runner = QLearningRunner(RaceTrack(), RaceCar(epsilon = 0.3, alpha = 0.5))
+    var runner = QLearningRunner(RaceTrack(), RacecarQLearningAgent(epsilon = 0.3, alpha = 0.5))
 
     for (i in 0..6400) {
         runner.agent.alpha *= 0.9995
@@ -55,13 +69,11 @@ fun doQLearningExperiment() {
             println("============= EPISODE ${i} =====")
             runner.printStats()
         }
-
-        runner.reset()
     }
 }
 
 fun doSarsaExperiment() {
-    var runner = SarsaRunner(RaceTrack(), RaceCar(epsilon = 0.5))
+    var runner = SarsaRunner(RaceTrack(), RacecarSarsaAgent(epsilon = 0.5))
 
     for (i in 0..8_000) {
 
@@ -88,8 +100,6 @@ fun doSarsaExperiment() {
             println("============= EPISODE ${i} =====")
             runner.printStats()
         }
-
-        runner.reset()
     }
 }
 
@@ -109,7 +119,7 @@ fun main() {
 
         when (choice) {
             1 -> doMonteCarloExperiment()
-            2 -> doSarsaExperiment()
+            2 -> stepWiseSarsa()//doSarsaExperiment()
             3 -> doQLearningExperiment()
             0 -> println("Invalid choice")
         }

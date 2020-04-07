@@ -1,7 +1,12 @@
 /**
  * Monte Carlo Episode / Training Runner
  */
-class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: MCAgent<S, A>) {
+class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: MonteCarloAgent<S, A>) {
+
+    /**
+     * Current state for agent when  start(), step(), stop() methods are used
+     */
+    var currentState: S = environment.restartForNextEpisode()
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -10,34 +15,20 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
     var maxRunTimeStepsInEpisode = 10000
 
     /**
-     * Used to keep track of which visits were first to a step within an episode.
-     * Should get cleared after playing an episode using reset()
+     * Stores data from current / last episode. This will be used for the Monte Carlo Agent to learn from
      */
-    var firstVisit = hashSetOf<S>()
-
-    /**
-     * Stores one episode's trajectory. Should get cleared after each episode, using reset()
-     */
-    var trajectory = ArrayList<Visit<S, A>>()
-
-    /**
-     * Resets trajectory and firstVisit arrays, used for policy improvement
-     */
-    fun reset() {
-        trajectory.clear()
-        firstVisit.clear()
-    }
+    val trajectory: Trajectory<S, A> = Trajectory()
 
     /**
      * Prints the trajectory taken on the track as well as other info
      */
     open fun printStats() {
         println()
-        println(environment.getDrawTrajectoryString(trajectory.reversed()))
-        println("Trajectory: ${trajectory.size} Steps")
+        println(environment.getDrawTrajectoryString(trajectory.list.reversed()))
+        println("Trajectory: ${trajectory.list.size} Steps")
         println()
 
-        if (environment.isTerminatingState(trajectory.last().state)) {
+        if (environment.isTerminatingState(trajectory.list.last().state)) {
             println("Termination found!")
         }
 
@@ -47,9 +38,44 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
     }
 
     /**
+     * Start a new episode to step through. Trajectory is cleared and current state is initialized.
+     */
+    fun start() {
+        trajectory.clear()
+        currentState = environment.restartForNextEpisode(currentState)
+    }
+
+    /**
+     * Take next step through current episode by having agent act in environment.
+     * Should call start() first before calling this.
+     * Call canStillStep() before stepping to see if you can still step
+     */
+    fun step() {
+        val action = agent.sampleActionFromState(currentState)
+        val nextStateSample = environment.sampleNextStateFromStateAction(currentState, action)
+        trajectory.add(currentState, action, nextStateSample.reward)
+        currentState = nextStateSample.state.clone()
+    }
+
+    /**
+     * @return If current state in current episode is in a terminating state in environment
+     */
+    fun canStillStep(): Boolean {
+        return !environment.isTerminatingState(currentState)
+    }
+
+    /**
+     * Ends the current episode, calling policy improvement algorithm
+     */
+    fun end() {
+        agent.improvePolicy(trajectory)
+    }
+
+    /**
      * Run one episode yielding a trajectory. Also runs policy improvement algorithm
      */
     fun runOneEpisode() {
+        trajectory.clear()
         var maxTime = maxRunTimeStepsInEpisode
 
         var statePointer = environment.restartForNextEpisode()
@@ -60,18 +86,11 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
             val action = agent.sampleActionFromState(statePointer)
             val nextStateSample = environment.sampleNextStateFromStateAction(statePointer, action)
 
-            val visit = Visit(statePointer, action, nextStateSample.reward)
-
-            trajectory.add(visit)
-
-            if (!firstVisit.contains(statePointer)) {
-                firstVisit.add(statePointer)
-                visit.isFirstVisit = true
-            }
+            trajectory.add(statePointer, action, nextStateSample.reward)
 
             statePointer = nextStateSample.state.clone()
         }
 
-        agent.improvePolicyWithMonteCarlo(trajectory)
+        agent.improvePolicy(trajectory)
     }
 }

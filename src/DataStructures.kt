@@ -17,7 +17,7 @@ interface Agent<S: State, A: Action> {
     /// Policy(state) -> Probability Distribution for action to be taken
     val pi: HashMap<S, ProbabilityDistribution<A>>
 
-    fun sampleActionFromState(state: S): A
+    open fun sampleActionFromState(state: S): A
     fun actionsForState(state: S): Set<A>
 }
 
@@ -53,36 +53,36 @@ interface Environment<S: State, A: Action> {
 /**
  * Monte Carlo agent learns using trajectory
  */
-interface MCAgent<S: State, A: Action>: Agent<S, A> {
-    var epsilon: Double
-    var gamma: Double
-
-    val returns: HashMap<StateAction<S, A>, ArrayList<Double>>
-
-    fun improvePolicyWithMonteCarlo(trajectory: Collection<Visit<S, A>>)
-}
+//interface MCAgent<S: State, A: Action>: Agent<S, A> {
+//    var epsilon: Double
+//    var gamma: Double
+//
+//    val returns: HashMap<StateAction<S, A>, ArrayList<Double>>
+//
+//    fun improvePolicyWithMonteCarlo(trajectory: Collection<Visit<S, A>>)
+//}
 
 /**
  * Sarsa agent learns using trajectory
  */
-interface SarsaAgent<S: State, A: Action>: Agent<S, A> {
-    var epsilon: Double
-    var gamma: Double
-    var alpha: Double
-
-    fun improvePolicyWithSarsa(state: S, action: A, nextStateSample: NextStateSample<S>, nextAction: A)
-}
+//interface SarsaAgent<S: State, A: Action>: Agent<S, A> {
+//    var epsilon: Double
+//    var gamma: Double
+//    var alpha: Double
+//
+//    fun improvePolicyWithSarsa(state: S, action: A, nextStateSample: NextStateSample<S>, nextAction: A)
+//}
 
 /**
  * QLearning
  */
-interface QLearningAgent<S: State, A: Action>: Agent<S, A> {
-    var epsilon: Double
-    var gamma: Double
-    var alpha: Double
-
-    fun improvePolicyWithQLearning(state: S, action: A, nextStateSample: NextStateSample<S>)
-}
+//interface QLearningAgent<S: State, A: Action>: Agent<S, A> {
+//    var epsilon: Double
+//    var gamma: Double
+//    var alpha: Double
+//
+//    fun improvePolicyWithQLearning(state: S, action: A, nextStateSample: NextStateSample<S>)
+//}
 
 /**
  * Represents a discrete and countable action in an RL Task.
@@ -149,7 +149,7 @@ class ProbabilityDistribution<T> {
     val probabilities = ArrayList<ProbabilityEvent<T>>()
     private var cumulativeWeight: Double = 0.0
 
-    fun setEvents(vararg events: T) {
+    fun setEvents(events: Set<T>) {
         val size = events.size.toDouble()
 
         events.forEachIndexed { index, element ->

@@ -7,23 +7,19 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
      * This is one of the drawbacks between Monte Carlo methods and online learning methods like Sarsa.
      */
-    var maxRunTimeStepsInEpisode = 10000
+    val maxRunTimeStepsInEpisode = 10000
+
+    var currentPosition: StateAction<S, A> = getStartingStateAction()
 
     /**
-     * Stores one episode's trajectory. Should get cleared after each episode, using reset()
+     * Store trajectory for aesthetics
      */
-    var trajectory = ArrayList<Visit<S, A>>()
+    val trajectory = Trajectory<S, A>()
 
-    /**
-     * Resets trajectory and firstVisit arrays, used for policy improvement
-     */
-    fun reset() {
-        trajectory.clear()
-    }
-
-    /**
-     * Prints the trajectory taken on the track as well as other info
-     */
+//
+//    /**
+//     * Prints the trajectory taken on the track as well as other info
+//     */
     fun printStats() {
         println("")
         println(environment.getDrawTrajectoryString(trajectory.reversed()))
@@ -43,10 +39,55 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
         println()
     }
 
+    private fun getStartingStateAction(): StateAction<S, A> {
+        val startingState = environment.restartForNextEpisode()
+        val startingAction = agent.sampleActionFromState(startingState)
+        return StateAction(startingState, startingAction)
+    }
+
+    /**
+     * Start a new episode to step through. Trajectory is cleared and current state is initialized.
+     */
+    fun start() {
+        trajectory.clear()
+        currentPosition = getStartingStateAction()
+    }
+
+    /**
+     * Take next step through current episode by having agent act in environment.
+     * Runs Q-Learning algorithm from immediate experience of the step
+     * Should call start() first before calling this.
+     * Call canStillStep() before stepping to see if you can still step
+     */
+    fun step() {
+        val nextStateSample = environment.sampleNextStateFromStateAction(currentPosition.state, currentPosition.action)
+        val nextAction = agent.sampleActionFromState(nextStateSample.state)
+
+        trajectory.add(currentPosition.state, currentPosition.action, nextStateSample.reward)
+
+        agent.improvePolicy(currentPosition.state, currentPosition.action, nextStateSample, nextAction)
+
+        currentPosition = StateAction(nextStateSample.state.clone(), nextAction)
+    }
+
+    /**
+     * @return If current state in current episode is in a terminating state in environment
+     */
+    fun canStillStep(): Boolean {
+        return !environment.isTerminatingState(currentPosition.state)
+    }
+
+    /**
+     * Does nothing, since agent learns during stepping
+     */
+    fun end() {}
+
+
     /**
      * Run one episode yielding a trajectory. Also runs policy improvement algorithm
      */
     fun runOneEpisode() {
+        trajectory.clear()
         var maxTime = maxRunTimeStepsInEpisode
 
         var statePointer = environment.restartForNextEpisode()
@@ -58,10 +99,9 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
             val nextStateSample = environment.sampleNextStateFromStateAction(statePointer, action)
             val nextAction = agent.sampleActionFromState(nextStateSample.state)
 
-            val visit = Visit(statePointer, action, nextStateSample.reward)
-            trajectory.add(visit)
+            trajectory.add(statePointer, nextAction, nextStateSample.reward)
 
-            agent.improvePolicyWithSarsa(statePointer, action, nextStateSample, nextAction)
+            agent.improvePolicy(statePointer, action, nextStateSample, nextAction)
 
             statePointer = nextStateSample.state.clone()
             action = nextAction
