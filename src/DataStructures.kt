@@ -17,7 +17,7 @@ interface Agent<S: State, A: Action> {
     /// Policy(state) -> Probability Distribution for action to be taken
     val pi: HashMap<S, ProbabilityDistribution<A>>
 
-    open fun sampleActionFromState(state: S): A
+    fun sampleActionFromState(state: S): A
     fun actionsForState(state: S): Set<A>
 }
 
@@ -49,40 +49,6 @@ interface Environment<S: State, A: Action> {
      */
     fun getDrawTrajectoryString(trajectory: Collection<Visit<S, A>>): String
 }
-
-/**
- * Monte Carlo agent learns using trajectory
- */
-//interface MCAgent<S: State, A: Action>: Agent<S, A> {
-//    var epsilon: Double
-//    var gamma: Double
-//
-//    val returns: HashMap<StateAction<S, A>, ArrayList<Double>>
-//
-//    fun improvePolicyWithMonteCarlo(trajectory: Collection<Visit<S, A>>)
-//}
-
-/**
- * Sarsa agent learns using trajectory
- */
-//interface SarsaAgent<S: State, A: Action>: Agent<S, A> {
-//    var epsilon: Double
-//    var gamma: Double
-//    var alpha: Double
-//
-//    fun improvePolicyWithSarsa(state: S, action: A, nextStateSample: NextStateSample<S>, nextAction: A)
-//}
-
-/**
- * QLearning
- */
-//interface QLearningAgent<S: State, A: Action>: Agent<S, A> {
-//    var epsilon: Double
-//    var gamma: Double
-//    var alpha: Double
-//
-//    fun improvePolicyWithQLearning(state: S, action: A, nextStateSample: NextStateSample<S>)
-//}
 
 /**
  * Represents a discrete and countable action in an RL Task.
@@ -219,16 +185,3 @@ data class RaceTrackState(val x: Int, val y: Int): State {
         return "(${x}, ${y})"
     }
 }
-
-/**
- * Sealed class as a container for all actions for the Race Track example
- */
-sealed class RaceTrackAction(override val name: String, override val char: Char): Action(name, char)
-
-object RACETRACK_ACTION_UP: RaceTrackAction("UP", '↑')
-object RACETRACK_ACTION_LEFT: RaceTrackAction("LEFT", '<')
-object RACETRACK_ACTION_RIGHT: RaceTrackAction("RIGHT", '>')
-object RACETRACK_ACTION_DOWN: RaceTrackAction("DOWN", '↓')
-
-/// Set of all race track actions takeable
-val RACETRACK_ACTIONS = arrayOf(RACETRACK_ACTION_UP, RACETRACK_ACTION_LEFT, RACETRACK_ACTION_RIGHT, RACETRACK_ACTION_DOWN)

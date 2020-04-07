@@ -1,5 +1,19 @@
 import java.lang.StringBuilder
 
+/**
+ * Sealed class as a container for all actions for the Race Track example
+ */
+sealed class RaceTrackAction(override val name: String, override val char: Char): Action(name, char)
+
+object RACETRACK_ACTION_UP: RaceTrackAction("UP", '↑')
+object RACETRACK_ACTION_LEFT: RaceTrackAction("LEFT", '<')
+object RACETRACK_ACTION_RIGHT: RaceTrackAction("RIGHT", '>')
+object RACETRACK_ACTION_DOWN: RaceTrackAction("DOWN", '↓')
+
+/// Set of all race track actions takeable
+val RACETRACK_ACTIONS = arrayOf(RACETRACK_ACTION_UP, RACETRACK_ACTION_LEFT, RACETRACK_ACTION_RIGHT, RACETRACK_ACTION_DOWN)
+
+
 const val OPEN_STATE = ' '
 const val STARTING_STATE = '1'
 const val ENDING_STATE = '2'

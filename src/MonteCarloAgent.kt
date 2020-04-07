@@ -40,7 +40,7 @@ abstract class MonteCarloAgent<S: State, A: Action>(var gamma: Double = 1.0,
     /**
      * Get an action from internal policy
      */
-    open override fun sampleActionFromState(state: S): A {
+    override fun sampleActionFromState(state: S): A {
         return getOrCreatePolicyForState(state).sample()
     }
 

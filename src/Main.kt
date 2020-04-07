@@ -119,7 +119,7 @@ fun main() {
 
         when (choice) {
             1 -> doMonteCarloExperiment()
-            2 -> stepWiseSarsa()//doSarsaExperiment()
+            2 -> doSarsaExperiment()
             3 -> doQLearningExperiment()
             0 -> println("Invalid choice")
         }
