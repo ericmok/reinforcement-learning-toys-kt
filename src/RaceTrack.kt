@@ -1,5 +1,3 @@
-import java.lang.StringBuilder
-
 /**
  * Sealed class as a container for all actions for the Race Track example
  */
@@ -238,29 +236,24 @@ open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
      * @return String pictoral representation of the board with trajectory drawn on top
      */
     override fun getDrawTrajectoryString(trajectory: Collection<Visit<RaceTrackState, RaceTrackAction>>): String {
-        val drawing = ArrayList<StringBuilder>()
+        val drawing = ArrayList<Array<Char>>()
 
-        val returnString = StringBuilder()
-
-        for ((y, line) in board.withIndex()) {
-            drawing.add(StringBuilder())
-
-            for ((x, char) in line.withIndex()) {
-                drawing[y].append(char)
-            }
-
-            drawing[y].append("\n")
+        for ((y, line) in board.withIndex()) {2
+            drawing.add(Array<Char>(line.size + 1) { i -> if (i == line.size - 1 + 1) '\n' else line[i] })
         }
 
         for (visit in trajectory) {
             drawing[visit.state.y][visit.state.x] = visit.action.char
         }
 
-        for (stringBuilder in drawing) {
-            returnString.append(stringBuilder)
+        var ret = ""
+
+        drawing.forEach {
+            for (char in it) {
+                ret += char
+            }
         }
 
-        return returnString.toString()
+        return ret
     }
-
 }
