@@ -102,28 +102,28 @@ fun doSarsaExperiment() {
         }
     }
 }
-
-fun main() {
-    var choice: Int = 0
-
-    while (choice != 4) {
-        println("Choose a number to run an experiment:")
-        println("1) Monte Carlo")
-        println("2) SARSA")
-        println("3) Q Learning")
-        println("4) Quit")
-        println()
-        print("Option [1-4] >> ")
-        val input = readLine()
-        choice = input?.toInt() ?: 0
-
-        when (choice) {
-            1 -> doMonteCarloExperiment()
-            2 -> doSarsaExperiment()
-            3 -> doQLearningExperiment()
-            0 -> println("Invalid choice")
-        }
-    }
-
-    println("Thanks for running me :D")
-}
+//
+//fun consoleMain() {
+//    var choice: Int = 0
+//
+//    while (choice != 4) {
+//        println("Choose a number to run an experiment:")
+//        println("1) Monte Carlo")
+//        println("2) SARSA")
+//        println("3) Q Learning")
+//        println("4) Quit")
+//        println()
+//        print("Option [1-4] >> ")
+//        val input = readLine()
+//        choice = input?.toInt() ?: 0
+//
+//        when (choice) {
+//            1 -> doMonteCarloExperiment()
+//            2 -> doSarsaExperiment()
+//            3 -> doQLearningExperiment()
+//            0 -> println("Invalid choice")
+//        }
+//    }
+//
+//    println("Thanks for running me :D")
+//}

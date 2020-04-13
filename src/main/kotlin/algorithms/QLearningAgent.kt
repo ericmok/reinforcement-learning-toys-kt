@@ -1,10 +1,9 @@
 /**
- * A Sarsa Learning Agent
+ * A Q-Learning Agent
  */
-abstract class SarsaAgent<S: State, A: Action>(var gamma: Double = 1.0,
-                                               var epsilon: Double = 0.5,
-                                               var alpha: Double = 0.1): Agent<S, A> {
-
+abstract class QLearningAgent<S: State, A: Action>(var gamma: Double = 1.0,
+                                                   var epsilon: Double = 0.5,
+                                                   var alpha: Double = 0.1): Agent<S, A> {
 
     override val q = HashMap<StateAction<S, A>, Double>()
     override val pi = HashMap<S, ProbabilityDistribution<A>>()
@@ -34,21 +33,25 @@ abstract class SarsaAgent<S: State, A: Action>(var gamma: Double = 1.0,
         return getOrCreatePolicyForState(state).sample()
     }
 
-    fun improvePolicy(
-        state: S,
-        action: A,
-        nextStateSample: NextStateSample<S>,
-        nextAction: A) {
+    fun improvePolicy(state: S,
+                      action: A,
+                      nextStateSample: NextStateSample<S>) {
+
         val sa = StateAction(state, action)
+        val saValue = q.getOrPut(sa, {0.0})
 
-        val delta = nextStateSample.reward + gamma * q.getOrDefault(StateAction(nextStateSample.state, nextAction), 0.0) - q.getOrPut(sa, { 0.0 })
+        val maxQ: Double = actionsForState(state).map {
+            q.getOrElse(StateAction(nextStateSample.state, it), { 0.0 })
+        }.max()!!
 
-        q[sa] = q[sa]!! + alpha * delta
+        val delta = nextStateSample.reward + gamma * maxQ - saValue
+
+        q[StateAction(state, action)] = saValue + alpha * delta
 
         val policy = getOrCreatePolicyForState(sa.state)
 
         val maxAction = policy.probabilities.map {
-            Pair(it, q.getOrDefault(StateAction(state, it.item), Double.NEGATIVE_INFINITY))
+            Pair(it, q.getOrElse(StateAction(state, it.item), { Double.NEGATIVE_INFINITY }))
         }.maxBy {
             it.second
         }!!.first.item
@@ -60,7 +63,6 @@ abstract class SarsaAgent<S: State, A: Action>(var gamma: Double = 1.0,
                 probability.weight = epsilon / actionsForState(state).size
             }
         }
-
         policy.normalize()
     }
 }
