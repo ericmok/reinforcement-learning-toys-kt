@@ -16,25 +16,6 @@ val displayScalingString = displayScaling.toString() + "px"
 
 val paddedDisplayScaling = displayScaling * .8
 
-open class RECT(initialAttributes : Map<String, String>, override val consumer : TagConsumer<*>) : HTMLTag("rect", consumer, initialAttributes, "http://www.w3.org/2000/svg", false, false), CommonAttributeGroupFacade {
-}
-inline fun RBuilder.rect(classes: String? = null, block: RDOMBuilder<RECT>.() -> Unit): ReactElement = tag(block) { RECT(attributesMapOf("class", classes), it) }
-
-open class CIRCLE(initialAttributes : Map<String, String>, override val consumer : TagConsumer<*>) : HTMLTag("circle", consumer, initialAttributes, "http://www.w3.org/2000/svg", false, false), CommonAttributeGroupFacade {
-}
-inline fun RBuilder.circle(classes: String? = null, block: RDOMBuilder<CIRCLE>.() -> Unit): ReactElement = tag(block) { CIRCLE(attributesMapOf("class", classes), it) }
-
-open class TEXT(initialAttributes : Map<String, String>, override val consumer : TagConsumer<*>) : HTMLTag("text", consumer, initialAttributes, "http://www.w3.org/2000/svg", false, false), CommonAttributeGroupFacade {}
-inline fun RBuilder.text(classes: String? = null, block: RDOMBuilder<TEXT>.() -> Unit): ReactElement = tag(block) { TEXT(attributesMapOf("class", classes), it) }
-
-open class LINE(initialAttributes : Map<String, String>, override val consumer : TagConsumer<*>) : HTMLTag("line", consumer, initialAttributes, "http://www.w3.org/2000/svg", false, false), CommonAttributeGroupFacade {}
-inline fun RBuilder.line(classes: String? = null, block: RDOMBuilder<LINE>.() -> Unit): ReactElement = tag(block) { LINE(attributesMapOf("class", classes), it) }
-
-open class POLYLINE(initialAttributes : Map<String, String>, override val consumer : TagConsumer<*>) : HTMLTag("polyline", consumer, initialAttributes, "http://www.w3.org/2000/svg", false, false), CommonAttributeGroupFacade {}
-inline fun RBuilder.polyline(classes: String? = null, block: RDOMBuilder<POLYLINE>.() -> Unit): ReactElement = tag(block) { POLYLINE(attributesMapOf("class", classes), it) }
-
-//val overlayedTrajectory = hashMapOf<RaceTrackState, Action>()
-
 fun ArrayList<Array<Char>>.getDimensions(): Pair<Int, Int> {
     return (this[0].size) to this.size
 }
@@ -170,13 +151,13 @@ class TrajectoryElement: RComponent<TrajectoryElementProps<RaceTrackState, RaceT
 
                 when (it.item) {
                     RACETRACK_ACTION_UP -> {
-                        text {
+                        styledText {
                             attrs {
                                 attributes["x"] = "${centerX + textQOffset}"
                                 attributes["y"] = "${centerY - paddedDisplayScaling / 2.0 + textQOffset}"
-                                attributes["stroke"] = textColor
                             }
-                            inlineStyles {
+                            css {
+                                this.declarations["stroke"] = textColor
                                 fontWeight = FontWeight.normal
                                 fontSize = LinearDimension("8px")
                             }
@@ -196,16 +177,17 @@ class TrajectoryElement: RComponent<TrajectoryElementProps<RaceTrackState, RaceT
                         }
                     }
                     RACETRACK_ACTION_LEFT -> {
-                        text {
+                        styledText {
                             attrs {
                                 attributes["x"] = "${centerX - paddedDisplayScaling / 2.0}"
                                 attributes["y"] = "${centerY - textQOffset}"
-                                attributes["stroke"] = textColor
                             }
-                            inlineStyles {
+                            css {
+                                this.declarations["stroke"] = textColor
                                 fontWeight = FontWeight.normal
                                 fontSize = LinearDimension("8px")
                             }
+
                             +qSA.toInt().toString()
                         }
                         line {
@@ -223,16 +205,17 @@ class TrajectoryElement: RComponent<TrajectoryElementProps<RaceTrackState, RaceT
                         }
                     }
                     RACETRACK_ACTION_RIGHT -> {
-                        text {
+                        styledText {
                             attrs {
-                                attributes["x"] = "${centerX + paddedDisplayScaling / 2.0 - textQOffset * 2 }"
+                                attributes["x"] = "${centerX + paddedDisplayScaling / 2.0 - textQOffset * 2}"
                                 attributes["y"] = "${centerY + textQOffset}"
-                                attributes["stroke"] = textColor
                             }
-                            inlineStyles {
+                            css {
+                                this.declarations["stroke"] = textColor
                                 fontWeight = FontWeight.normal
                                 fontSize = LinearDimension("8px")
                             }
+
                             +qSA.toInt().toString()
                         }
                         line {
@@ -250,16 +233,17 @@ class TrajectoryElement: RComponent<TrajectoryElementProps<RaceTrackState, RaceT
                         }
                     }
                     RACETRACK_ACTION_DOWN -> {
-                        text {
+                        styledText {
                             attrs {
                                 attributes["x"] = "${centerX + textQOffset}"
                                 attributes["y"] = "${centerY + paddedDisplayScaling / 2.0}"
-                                attributes["stroke"] = textColor
                             }
-                            inlineStyles {
+                            css {
+                                this.declarations["stroke"] = textColor
                                 fontWeight = FontWeight.normal
                                 fontSize = LinearDimension("8px")
                             }
+
                             +qSA.toInt().toString()
                         }
                         line {
