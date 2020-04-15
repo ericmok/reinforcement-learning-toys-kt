@@ -56,7 +56,11 @@ abstract class MonteCarloAgent<S: State, A: Action>(var gamma: Double = 1.0,
 
             returns.getOrPut(sa) { arrayListOf() }.add(accumulatedReturn)
 
+            // strict average over all returns
             q[sa] = returns[sa]!!.average()
+
+            // alpha
+            // q[sa] = (q!![sa] ?: 0.0) + 0.1 * (accumulatedReturn - (q!![sa] ?: 0.0))
 
             // Look for all state actions with a particular state
             val maxEntry = q.entries.filter { it.key.state == sa.state }.maxBy { it.value }!!
