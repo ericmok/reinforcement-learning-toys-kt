@@ -25,6 +25,7 @@ external interface AppState: RState {
     var agent: RacecarMonteCarloAgent
     var interval: Int
     var epsilon: Double
+    var gamma: Double
 }
 
 class App: RComponent<RProps, AppState>() {
@@ -34,6 +35,7 @@ class App: RComponent<RProps, AppState>() {
         agent = RacecarMonteCarloAgent()
         runner = MonteCarloRunner(environment, agent)
         epsilon = 0.4
+        gamma = 1.0
     }
 
     fun startOver() {
@@ -117,6 +119,32 @@ class App: RComponent<RProps, AppState>() {
         }
         span {
             +state.epsilon.toString()
+        }
+
+
+        input {
+            attrs {
+                type = InputType.range
+                min = "0.00"
+                max = "1.0"
+                step = "0.05"
+                value = state.gamma.toString()
+
+                onChangeFunction = { ev ->
+                    val newValue = (ev.target as HTMLInputElement)!!.value.toDouble()
+                    println(newValue)
+                    state.runner.agent.gamma = newValue
+                    setState{
+                        this.gamma = newValue
+                    }
+                }
+            }
+        }
+        label {
+            +"Gamma: "
+        }
+        span {
+            +state.gamma.toString()
         }
         br {}
         button {
