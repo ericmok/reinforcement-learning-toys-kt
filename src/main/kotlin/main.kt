@@ -26,6 +26,8 @@ external interface AppState: RState {
     var interval: Int
     var epsilon: Double
     var gamma: Double
+    var numberEpisodes: Int
+    var performance: ArrayList<Int>
 }
 
 class App: RComponent<RProps, AppState>() {
@@ -36,7 +38,10 @@ class App: RComponent<RProps, AppState>() {
         runner = MonteCarloRunner(environment, agent)
         epsilon = 0.4
         gamma = 1.0
+        numberEpisodes = 0
+        performance = arrayListOf()
     }
+
 
     fun startOver() {
         state.runner.start()
@@ -57,6 +62,10 @@ class App: RComponent<RProps, AppState>() {
                 if (!state.runner.canStillStep()) {
                     state.runner.end()
                     state.runner.start()
+                    setState {
+                        numberEpisodes += 1
+                    }
+                    state.performance.add(state.runner.trajectory.size)
                 }
                 state.runner.step()
 
@@ -76,8 +85,11 @@ class App: RComponent<RProps, AppState>() {
             window.clearInterval(state.interval)
 
             interval = window.setInterval({
-                runner.runOneEpisode()
-                forceUpdate()
+                state.runner.runOneEpisode()
+                setState {
+                    numberEpisodes += 1
+                }
+                state.performance.add(state.runner.trajectory.size)
             }, 200)
         }
     }
@@ -146,6 +158,30 @@ class App: RComponent<RProps, AppState>() {
         span {
             +state.gamma.toString()
         }
+
+        div {
+            div {
+                +"Trajectory Length: "
+                +state.runner.trajectory.size.toString()
+            }
+            div {
+                +"Number episodes: "
+                +state.numberEpisodes.toString()
+            }
+        }
+//        svg {
+//            polyline {
+//                attrs {
+//                    attributes["points"] = state.performance.takeLast(100).foldIndexed("") { index, acc, i ->
+//                        acc + " ${index * 100},${i}"
+//                    }
+//                    attributes["fill"] = "none"
+//                    attributes["stroke"] = "black"
+//                    attributes["stroke-width"] = "2px"
+//                }
+//            }
+//        }
+
         br {}
         button {
             +"AUTO EPISODE \uD83D\uDDD8"
