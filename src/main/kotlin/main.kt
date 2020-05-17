@@ -10,6 +10,25 @@ import styled.*
 import kotlin.browser.document
 import kotlin.browser.window
 
+object ButtonStyles : StyleSheet("ButtonStyles") {
+    val button by css {
+        border = "solid 1px #1082c7"
+        padding = "5px"
+        margin = "1px"
+        borderRadius = LinearDimension("3px")
+        lineHeight = LineHeight("1")
+        height = LinearDimension("40px")
+        color = Color("#1082c7")
+        background = "none"
+        cursor = Cursor.pointer
+
+        hover {
+            background = "#333"
+            color = Color("#eee")
+        }
+    }
+}
+
 val displayScaling = 50.0
 val displayScalingString = displayScaling.toString() + "px"
 
@@ -23,11 +42,13 @@ external interface AppState: RState {
     var runner: MonteCarloRunner<RaceTrackState, RaceTrackAction>
     var environment: RaceTrack
     var agent: RacecarMonteCarloAgent
-    var interval: Int
+    var autoStepInterval: Int
     var epsilon: Double
     var gamma: Double
     var numberEpisodes: Int
     var performance: ArrayList<Int>
+    var singleStepMode: Boolean
+    var autoEpisodeIsRunning: Boolean
 }
 
 class App: RComponent<RProps, AppState>() {
@@ -40,25 +61,36 @@ class App: RComponent<RProps, AppState>() {
         gamma = 1.0
         numberEpisodes = 0
         performance = arrayListOf()
+        singleStepMode = false
+
+        autoEpisodeIsRunning = false
     }
 
 
     fun startOver() {
+        stopAutoRuns()
         state.runner.start()
-        forceUpdate()
     }
 
-    fun stopAutoRun() {
-        window.clearInterval(state.interval)
+    fun stopAutoRuns() {
+        window.clearInterval(state.autoStepInterval)
         setState {
-            interval = -1
+            //interval = -1
+            autoStepInterval = -1
+            autoEpisodeIsRunning = false
         }
     }
 
     fun runAutoStep() {
-        stopAutoRun()
+        stopAutoRuns()
+        if (!state.singleStepMode) {
+            state.runner.start()
+            setState {
+                singleStepMode = true
+            }
+        }
         setState {
-            interval = window.setInterval({
+            autoStepInterval = window.setInterval({
                 if (!state.runner.canStillStep()) {
                     state.runner.end()
                     state.runner.start()
@@ -75,23 +107,48 @@ class App: RComponent<RProps, AppState>() {
     }
 
     fun runSingleStep() {
-        stopAutoRun()
+        stopAutoRuns()
+        if (!state.singleStepMode) {
+            state.runner.start()
+            setState {
+                singleStepMode = true
+                autoEpisodeIsRunning = false
+            }
+        }
         state.runner.step()
         forceUpdate()
     }
 
+    fun runOneEpisode() {
+        stopAutoRuns()
+        state.runner.runOneEpisode()
+        setState {
+            this.autoEpisodeIsRunning = false
+            this.singleStepMode = false
+            this.numberEpisodes = numberEpisodes + 1
+        }
+    }
+
+    private fun autoEpisodeTimeoutFunction() {
+        state.runner.runOneEpisode()
+        setState {
+            numberEpisodes += 1
+        }
+        state.performance.add(state.runner.trajectory.size)
+
+        window.setTimeout({
+            if (state.autoEpisodeIsRunning) {
+                autoEpisodeTimeoutFunction()
+            }
+        }, 200)
+    }
+
     fun autoEpisode() {
         setState {
-            window.clearInterval(state.interval)
-
-            interval = window.setInterval({
-                state.runner.runOneEpisode()
-                setState {
-                    numberEpisodes += 1
-                }
-                state.performance.add(state.runner.trajectory.size)
-            }, 200)
+            singleStepMode = false
+            autoEpisodeIsRunning = true
         }
+        autoEpisodeTimeoutFunction()
     }
 
     override fun RBuilder.render() {
@@ -117,7 +174,7 @@ class App: RComponent<RProps, AppState>() {
                 value = state.epsilon.toString()
 
                 onChangeFunction = { ev ->
-                    val newValue = (ev.target as HTMLInputElement)!!.value.toDouble()
+                    val newValue = (ev.target as HTMLInputElement).value.toDouble()
                     println(newValue)
                     state.runner.agent.epsilon = newValue
                     setState{
@@ -143,7 +200,7 @@ class App: RComponent<RProps, AppState>() {
                 value = state.gamma.toString()
 
                 onChangeFunction = { ev ->
-                    val newValue = (ev.target as HTMLInputElement)!!.value.toDouble()
+                    val newValue = (ev.target as HTMLInputElement).value.toDouble()
                     println(newValue)
                     state.runner.agent.gamma = newValue
                     setState{
@@ -183,53 +240,110 @@ class App: RComponent<RProps, AppState>() {
 //        }
 
         br {}
-        button {
-            +"AUTO EPISODE \uD83D\uDDD8"
-            attrs {
-                onClickFunction = {
-                    autoEpisode()
-                }
-            }
-        }
-        button {
-            +"AUTO STEP \uD83D\uDDD8"
-            attrs {
-                onClickFunction = {
-                    runAutoStep()
-                }
-            }
-        }
-        button {
-            +"BACK TO START POSITION"
-            attrs {
-                onClickFunction = {
-                    startOver()
-                }
-            }
-        }
-        button {
-            +"STEP"
-            attrs {
-                onClickFunction = { ev ->
-                    runSingleStep()
-                }
-            }
-        }
-        styledButton {
-            +"STOP"
-            attrs {
-                onClickFunction = {
-                    stopAutoRun()
-                }
-            }
+        styledDiv {
             css {
-                padding = "10px"
-                background = "#FCC"
-                border = "solid 1px black"
-                borderRadius = LinearDimension("3px")
-                fontWeight = FontWeight.bold
+                display = Display.grid
+                gridTemplateColumns = GridTemplateColumns("1fr 1fr")
+            }
+            styledDiv {
+                h4 {+"Per Episode Runs"}
+
+                styledButton {
+                    +"\uD83D\uDDD8 AUTO EPISODE"
+                    attrs {
+                        onClickFunction = {
+                            autoEpisode()
+                        }
+                    }
+                    css {
+                        +ButtonStyles.button
+                    }
+                }
+                styledButton {
+                    +"▶️ RUN ONE EPISODE"
+                    attrs {
+                        onClickFunction = {
+                            runOneEpisode()
+                        }
+                    }
+                    css {
+                        +ButtonStyles.button
+                    }
+                }
+                styledButton {
+                    +"⏸️ PAUSE"
+                    attrs {
+                        onClickFunction = {
+                            stopAutoRuns()
+                        }
+                    }
+                    css {
+                        +ButtonStyles.button
+                    }
+                }
+                styledButton {
+                    +"⏹️ CLEAR"
+                    css {
+                        +ButtonStyles.button
+                    }
+                    attrs {
+                        onClickFunction = {
+                            startOver()
+                        }
+                    }
+                }
+            }
+            styledDiv {
+                h4 { +"Per Step Runs" }
+
+                styledButton {
+                    +"\uD83D\uDDD8 AUTO STEP"
+                    attrs {
+                        onClickFunction = {
+                            runAutoStep()
+                        }
+                    }
+                    css {
+                        +ButtonStyles.button
+                    }
+                }
+                styledButton {
+                    +"▶️ STEP"
+                    attrs {
+                        onClickFunction = { ev ->
+                            runSingleStep()
+                        }
+                    }
+                    css {
+                        +ButtonStyles.button
+                    }
+                }
+                styledButton {
+                    +"⏸️ PAUSE"
+                    attrs {
+                        onClickFunction = {
+                            stopAutoRuns()
+                        }
+                    }
+                    css {
+                        +ButtonStyles.button
+                    }
+                }
+                styledButton {
+                    +"⏹️ CLEAR"
+                    attrs {
+                        onClickFunction = {
+                            startOver()
+                        }
+                    }
+                    css {
+                        +ButtonStyles.button
+                    }
+                }
             }
         }
+
+
     }
 }
 
