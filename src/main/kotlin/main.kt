@@ -10,7 +10,7 @@ import styled.*
 import kotlin.browser.document
 import kotlin.browser.window
 
-object ButtonStyles : StyleSheet("ButtonStyles") {
+object Styles : StyleSheet("ButtonStyles") {
     val button by css {
         border = "solid 1px #1082c7"
         padding = "5px"
@@ -26,6 +26,10 @@ object ButtonStyles : StyleSheet("ButtonStyles") {
             background = "#333"
             color = Color("#eee")
         }
+    }
+
+    val inputRange by css {
+        width = LinearDimension("200px")
     }
 }
 
@@ -45,6 +49,8 @@ external interface AppState: RState {
     var autoStepInterval: Int
     var epsilon: Double
     var gamma: Double
+    var alpha: Double
+    var useAlpha: Boolean
     var numberEpisodes: Int
     var performance: ArrayList<Int>
     var singleStepMode: Boolean
@@ -59,6 +65,8 @@ class App: RComponent<RProps, AppState>() {
         runner = MonteCarloRunner(environment, agent)
         epsilon = 0.4
         gamma = 1.0
+        alpha = 0.125
+        useAlpha = true
         numberEpisodes = 0
         performance = arrayListOf()
         singleStepMode = false
@@ -152,80 +160,156 @@ class App: RComponent<RProps, AppState>() {
     }
 
     override fun RBuilder.render() {
-        h1 {
-            +"Reinforcement Learning"
-        }
-        div {
-            child(Board::class) {
-                attrs {
-                    runner = state.runner
-                    board = state.environment.board
+        styledDiv {
+            h1 {
+                +"Reinforcement Learning"
+            }
+            div {
+                child(Board::class) {
+                    attrs {
+                        runner = state.runner
+                        board = state.environment.board
 //                trajectory = state.runner.trajectory
-                }
-            }
-        }
-
-        input {
-            attrs {
-                type = InputType.range
-                min = "0.01"
-                max = "1.0"
-                step = "0.05"
-                value = state.epsilon.toString()
-
-                onChangeFunction = { ev ->
-                    val newValue = (ev.target as HTMLInputElement).value.toDouble()
-                    println(newValue)
-                    state.runner.agent.epsilon = newValue
-                    setState{
-                       this.epsilon = newValue
                     }
                 }
             }
-        }
-        label {
-            +"Epsilon: "
-        }
-        span {
-            +state.epsilon.toString()
-        }
+
+            div {
+                styledInput {
+                    css {
+                        +Styles.inputRange
+                    }
+                    attrs {
+                        type = InputType.range
+                        min = "0.01"
+                        max = "1.0"
+                        step = "0.05"
+                        value = state.epsilon.toString()
+
+                        onChangeFunction = { ev ->
+                            val newValue = (ev.target as HTMLInputElement).value.toDouble()
+                            println(newValue)
+                            state.runner.agent.epsilon = newValue
+                            setState {
+                                this.epsilon = newValue
+                            }
+                        }
+                    }
+                }
+                label {
+                    +"Epsilon: "
+                }
+                span {
+                    +state.epsilon.toString()
+                }
+            }
+            div {
+                styledInput {
+                    css {
+                        +Styles.inputRange
+                    }
+                    attrs {
+                        type = InputType.range
+                        min = "0.00"
+                        max = "1.0"
+                        step = "0.05"
+                        value = state.gamma.toString()
+
+                        onChangeFunction = { ev ->
+                            val newValue = (ev.target as HTMLInputElement).value.toDouble()
+                            println(newValue)
+                            state.runner.agent.gamma = newValue
+                            setState {
+                                this.gamma = newValue
+                            }
+                        }
+                    }
+                }
+                label {
+                    +"Gamma: "
+                }
+                span {
+                    +state.gamma.toString()
+                }
+            }
+            div {
+                styledFieldSet {
+                    css {
+                       maxWidth = LinearDimension("500px")
+                    }
+                    legend {
+                        label {
+                            +"Use Fixed Alpha"
+                        }
+                        input {
+                            attrs {
+                                type = InputType.checkBox
+                                checked = state.useAlpha
 
 
-        input {
-            attrs {
-                type = InputType.range
-                min = "0.00"
-                max = "1.0"
-                step = "0.05"
-                value = state.gamma.toString()
+                                onChangeFunction = { ev ->
+                                    setState {
+                                        useAlpha = !state.useAlpha //(ev.target as HTMLInputElement).checked
+                                    }
 
-                onChangeFunction = { ev ->
-                    val newValue = (ev.target as HTMLInputElement).value.toDouble()
-                    println(newValue)
-                    state.runner.agent.gamma = newValue
-                    setState{
-                        this.gamma = newValue
+                                    if (!state.useAlpha) {
+                                        state.runner.agent.alpha = -1.0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    styledDiv {
+                        styledInput {
+                            css {
+                                +Styles.inputRange
+                            }
+                            attrs {
+                                type = InputType.range
+                                min = "0.0"
+                                max = "1.0"
+                                step = "0.03125"
+                                value = state.alpha.toString()
+                                disabled = !state.useAlpha
+
+                                onChangeFunction = { ev ->
+                                    val newValue = (ev.target as HTMLInputElement).value.toDouble()
+                                    println(newValue)
+                                    state.runner.agent.alpha = newValue
+                                    setState {
+                                        this.alpha = newValue
+                                    }
+                                }
+                            }
+                        }
+                        styledSpan {
+                            css {
+                                if (!state.useAlpha) {
+                                    opacity = 0.5
+                                }
+                            }
+                            label {
+                                +"Alpha: "
+                            }
+                            span {
+                                +state.alpha.toString()
+                            }
+                        }
+
                     }
                 }
             }
-        }
-        label {
-            +"Gamma: "
-        }
-        span {
-            +state.gamma.toString()
-        }
 
-        div {
             div {
-                +"Trajectory Length: "
-                +state.runner.trajectory.size.toString()
+                div {
+                    +"Trajectory Length: "
+                    +state.runner.trajectory.size.toString()
+                }
+                div {
+                    +"Number episodes: "
+                    +state.numberEpisodes.toString()
+                }
             }
-            div {
-                +"Number episodes: "
-                +state.numberEpisodes.toString()
-            }
-        }
 //        svg {
 //            polyline {
 //                attrs {
@@ -239,111 +323,110 @@ class App: RComponent<RProps, AppState>() {
 //            }
 //        }
 
-        br {}
-        styledDiv {
-            css {
-                display = Display.grid
-                gridTemplateColumns = GridTemplateColumns("1fr 1fr")
-            }
+            br {}
             styledDiv {
-                h4 {+"Per Episode Runs"}
+                css {
+                    display = Display.grid
+                    gridTemplateColumns = GridTemplateColumns("1fr 1fr")
+                }
+                styledDiv {
+                    h4 {+"Per Episode Runs"}
 
-                styledButton {
-                    +"\uD83D\uDDD8 AUTO EPISODE"
-                    attrs {
-                        onClickFunction = {
-                            autoEpisode()
+                    styledButton {
+                        +"\uD83D\uDDD8 AUTO EPISODE"
+                        attrs {
+                            onClickFunction = {
+                                autoEpisode()
+                            }
+                        }
+                        css {
+                            +Styles.button
                         }
                     }
-                    css {
-                        +ButtonStyles.button
-                    }
-                }
-                styledButton {
-                    +"▶️ RUN ONE EPISODE"
-                    attrs {
-                        onClickFunction = {
-                            runOneEpisode()
+                    styledButton {
+                        +"▶️ RUN ONE EPISODE"
+                        attrs {
+                            onClickFunction = {
+                                runOneEpisode()
+                            }
+                        }
+                        css {
+                            +Styles.button
                         }
                     }
-                    css {
-                        +ButtonStyles.button
-                    }
-                }
-                styledButton {
-                    +"⏸️ PAUSE"
-                    attrs {
-                        onClickFunction = {
-                            stopAutoRuns()
+                    styledButton {
+                        +"⏸️ PAUSE"
+                        attrs {
+                            onClickFunction = {
+                                stopAutoRuns()
+                            }
+                        }
+                        css {
+                            +Styles.button
                         }
                     }
-                    css {
-                        +ButtonStyles.button
-                    }
-                }
-                styledButton {
-                    +"⏹️ CLEAR"
-                    css {
-                        +ButtonStyles.button
-                    }
-                    attrs {
-                        onClickFunction = {
-                            startOver()
+                    styledButton {
+                        +"⏹️ CLEAR"
+                        css {
+                            +Styles.button
+                        }
+                        attrs {
+                            onClickFunction = {
+                                startOver()
+                            }
                         }
                     }
                 }
-            }
-            styledDiv {
-                h4 { +"Per Step Runs" }
+                styledDiv {
+                    h4 { +"Per Step Runs" }
 
-                styledButton {
-                    +"\uD83D\uDDD8 AUTO STEP"
-                    attrs {
-                        onClickFunction = {
-                            runAutoStep()
+                    styledButton {
+                        +"\uD83D\uDDD8 AUTO STEP"
+                        attrs {
+                            onClickFunction = {
+                                runAutoStep()
+                            }
+                        }
+                        css {
+                            +Styles.button
                         }
                     }
-                    css {
-                        +ButtonStyles.button
-                    }
-                }
-                styledButton {
-                    +"▶️ STEP"
-                    attrs {
-                        onClickFunction = { ev ->
-                            runSingleStep()
+                    styledButton {
+                        +"▶️ STEP"
+                        attrs {
+                            onClickFunction = { ev ->
+                                runSingleStep()
+                            }
+                        }
+                        css {
+                            +Styles.button
                         }
                     }
-                    css {
-                        +ButtonStyles.button
-                    }
-                }
-                styledButton {
-                    +"⏸️ PAUSE"
-                    attrs {
-                        onClickFunction = {
-                            stopAutoRuns()
+                    styledButton {
+                        +"⏸️ PAUSE"
+                        attrs {
+                            onClickFunction = {
+                                stopAutoRuns()
+                            }
+                        }
+                        css {
+                            +Styles.button
                         }
                     }
-                    css {
-                        +ButtonStyles.button
-                    }
-                }
-                styledButton {
-                    +"⏹️ CLEAR"
-                    attrs {
-                        onClickFunction = {
-                            startOver()
+                    styledButton {
+                        +"⏹️ CLEAR"
+                        attrs {
+                            onClickFunction = {
+                                startOver()
+                            }
                         }
-                    }
-                    css {
-                        +ButtonStyles.button
+                        css {
+                            +Styles.button
+                        }
                     }
                 }
             }
         }
-
-
     }
 }
 
