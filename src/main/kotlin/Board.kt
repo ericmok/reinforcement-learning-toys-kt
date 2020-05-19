@@ -1,7 +1,9 @@
+import kotlinx.html.style
 import react.RBuilder
 import react.RComponent
 import react.RProps
 import react.RState
+import react.dom.style
 import react.dom.svg
 
 class BoardProps(var board: ArrayList<Array<Char>>,
@@ -16,7 +18,7 @@ class Board: RComponent<BoardProps, RState>() {
             attrs {
                 this.attributes["xmlns"] = "http://www.w3.org/2000/svg"
                 this.attributes["viewBox"] = "0 0 ${dimX * displayScaling} ${dimY * displayScaling}"
-                this.attributes["width"] = "1400"
+                //this.attributes["width"] = "1024"
             }
 
             for (y in 0 until dimY) {

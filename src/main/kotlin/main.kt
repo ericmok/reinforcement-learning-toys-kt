@@ -159,21 +159,11 @@ class App: RComponent<RProps, AppState>() {
         autoEpisodeTimeoutFunction()
     }
 
-    override fun RBuilder.render() {
+    fun RBuilder.renderParameters() {
         styledDiv {
-            h1 {
-                +"Reinforcement Learning"
+            css {
+                declarations["grid-area"] = "params"
             }
-            div {
-                child(Board::class) {
-                    attrs {
-                        runner = state.runner
-                        board = state.environment.board
-//                trajectory = state.runner.trajectory
-                    }
-                }
-            }
-
             div {
                 styledInput {
                     css {
@@ -235,7 +225,7 @@ class App: RComponent<RProps, AppState>() {
             div {
                 styledFieldSet {
                     css {
-                       maxWidth = LinearDimension("500px")
+                        maxWidth = LinearDimension("500px")
                     }
                     legend {
                         label {
@@ -310,6 +300,146 @@ class App: RComponent<RProps, AppState>() {
                     +state.numberEpisodes.toString()
                 }
             }
+        }
+    }
+
+    fun RBuilder.renderControls() {
+        styledDiv {
+            css {
+                declarations["grid-area"] = "controls"
+                display = Display.grid
+//                gridTemplateColumns = GridTemplateColumns("1fr 1fr")
+            }
+            styledDiv {
+                h4 {+"Per Episode Runs"}
+
+                styledButton {
+                    +"\uD83D\uDDD8 AUTO EPISODE"
+                    attrs {
+                        onClickFunction = {
+                            autoEpisode()
+                        }
+                    }
+                    css {
+                        +Styles.button
+                    }
+                }
+                styledButton {
+                    +"▶️ RUN ONE EPISODE"
+                    attrs {
+                        onClickFunction = {
+                            runOneEpisode()
+                        }
+                    }
+                    css {
+                        +Styles.button
+                    }
+                }
+                styledButton {
+                    +"⏸️ PAUSE"
+                    attrs {
+                        onClickFunction = {
+                            stopAutoRuns()
+                        }
+                    }
+                    css {
+                        +Styles.button
+                    }
+                }
+                styledButton {
+                    +"⏹️ CLEAR"
+                    css {
+                        +Styles.button
+                    }
+                    attrs {
+                        onClickFunction = {
+                            startOver()
+                        }
+                    }
+                }
+            }
+            styledDiv {
+                h4 { +"Per Step Runs" }
+
+                styledButton {
+                    +"\uD83D\uDDD8 AUTO STEP"
+                    attrs {
+                        onClickFunction = {
+                            runAutoStep()
+                        }
+                    }
+                    css {
+                        +Styles.button
+                    }
+                }
+                styledButton {
+                    +"▶️ STEP"
+                    attrs {
+                        onClickFunction = { ev ->
+                            runSingleStep()
+                        }
+                    }
+                    css {
+                        +Styles.button
+                    }
+                }
+                styledButton {
+                    +"⏸️ PAUSE"
+                    attrs {
+                        onClickFunction = {
+                            stopAutoRuns()
+                        }
+                    }
+                    css {
+                        +Styles.button
+                    }
+                }
+                styledButton {
+                    +"⏹️ CLEAR"
+                    attrs {
+                        onClickFunction = {
+                            startOver()
+                        }
+                    }
+                    css {
+                        +Styles.button
+                    }
+                }
+            }
+        }
+    }
+
+    override fun RBuilder.render() {
+        styledDiv {
+            css {
+                display = Display.grid
+                gridTemplateColumns = GridTemplateColumns("2fr 1fr")
+                gridTemplateAreas = GridTemplateAreas("""
+                    "header header"
+                    "board params"
+                    "board controls"
+                    "footer footer"
+                """.trimIndent())
+            }
+            styledH1 {
+                css {
+                    this.declarations["grid-area"] = "header"
+                }
+                +"Reinforcement Learning"
+            }
+            styledDiv {
+                css {
+                    this.declarations["grid-area"] = "board"
+                }
+                child(Board::class) {
+                    attrs {
+                        runner = state.runner
+                        board = state.environment.board
+//                trajectory = state.runner.trajectory
+                    }
+                }
+            }
+
 //        svg {
 //            polyline {
 //                attrs {
@@ -322,110 +452,8 @@ class App: RComponent<RProps, AppState>() {
 //                }
 //            }
 //        }
-
-            br {}
-            styledDiv {
-                css {
-                    display = Display.grid
-                    gridTemplateColumns = GridTemplateColumns("1fr 1fr")
-                }
-                styledDiv {
-                    h4 {+"Per Episode Runs"}
-
-                    styledButton {
-                        +"\uD83D\uDDD8 AUTO EPISODE"
-                        attrs {
-                            onClickFunction = {
-                                autoEpisode()
-                            }
-                        }
-                        css {
-                            +Styles.button
-                        }
-                    }
-                    styledButton {
-                        +"▶️ RUN ONE EPISODE"
-                        attrs {
-                            onClickFunction = {
-                                runOneEpisode()
-                            }
-                        }
-                        css {
-                            +Styles.button
-                        }
-                    }
-                    styledButton {
-                        +"⏸️ PAUSE"
-                        attrs {
-                            onClickFunction = {
-                                stopAutoRuns()
-                            }
-                        }
-                        css {
-                            +Styles.button
-                        }
-                    }
-                    styledButton {
-                        +"⏹️ CLEAR"
-                        css {
-                            +Styles.button
-                        }
-                        attrs {
-                            onClickFunction = {
-                                startOver()
-                            }
-                        }
-                    }
-                }
-                styledDiv {
-                    h4 { +"Per Step Runs" }
-
-                    styledButton {
-                        +"\uD83D\uDDD8 AUTO STEP"
-                        attrs {
-                            onClickFunction = {
-                                runAutoStep()
-                            }
-                        }
-                        css {
-                            +Styles.button
-                        }
-                    }
-                    styledButton {
-                        +"▶️ STEP"
-                        attrs {
-                            onClickFunction = { ev ->
-                                runSingleStep()
-                            }
-                        }
-                        css {
-                            +Styles.button
-                        }
-                    }
-                    styledButton {
-                        +"⏸️ PAUSE"
-                        attrs {
-                            onClickFunction = {
-                                stopAutoRuns()
-                            }
-                        }
-                        css {
-                            +Styles.button
-                        }
-                    }
-                    styledButton {
-                        +"⏹️ CLEAR"
-                        attrs {
-                            onClickFunction = {
-                                startOver()
-                            }
-                        }
-                        css {
-                            +Styles.button
-                        }
-                    }
-                }
-            }
+            renderParameters()
+            renderControls()
         }
     }
 }
