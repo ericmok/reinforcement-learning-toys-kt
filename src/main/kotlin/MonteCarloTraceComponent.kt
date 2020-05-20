@@ -18,7 +18,7 @@ class Trace: RComponent<TraceProps, RState>() {
         val centerX = props.agentState.x * displayScaling + displayScaling / 2
         val centerY = props.agentState.y * displayScaling + displayScaling / 2
 
-        val maxAP = props.agent!!.pi.get(props.agentState)?.probabilities?.maxBy { it.weight }
+        val maxAP = props.agent.pi.get(props.agentState)?.probabilities?.maxBy { it.weight }
 
         if (maxAP != null) {
             if (props.action != maxAP.item) {
@@ -125,8 +125,8 @@ class Trace: RComponent<TraceProps, RState>() {
 
         val textColor = "#CCCCCF"
 
-        props.agent!!.pi.get(props.agentState)?.probabilities?.forEach {
-            val qSA = props.agent!!.q?.get(StateAction(props.agentState, it.item)) ?: -1.0
+        props.agent.pi.get(props.agentState)?.probabilities?.forEach {
+            val qSA = props.agent.q.get(StateAction(props.agentState, it.item)) ?: -1.0
             val textQOffset = displayScaling / 8
 
             when (it.item) {

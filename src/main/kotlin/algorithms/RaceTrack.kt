@@ -238,7 +238,7 @@ open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
     override fun getDrawTrajectoryString(trajectory: Collection<Visit<RaceTrackState, RaceTrackAction>>): String {
         val drawing = ArrayList<Array<Char>>()
 
-        for ((y, line) in board.withIndex()) {2
+        for ((y, line) in board.withIndex()) {
             drawing.add(Array<Char>(line.size + 1) { i -> if (i == line.size - 1 + 1) '\n' else line[i] })
         }
 
