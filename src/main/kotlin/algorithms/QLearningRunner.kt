@@ -1,7 +1,8 @@
 /**
  * Q Learning Runner
  */
-class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: QLearningAgent<S, A>) {
+class QLearningRunner<S: State, A: Action>(override var environment: Environment<S, A>,
+                                           override var agent: QLearningAgent<S, A>): GeneralRunner<S, A, S> {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -17,7 +18,7 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
      */
-    var trajectory = Trajectory<S, A>()
+    override var trajectory = Trajectory<S, A>()
 
     /**
      * Prints the trajectory taken on the track as well as other info
@@ -48,7 +49,7 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
     /**
      * Start a new episode to step through. Trajectory is cleared and current state is initialized.
      */
-    fun start() {
+    override fun start() {
         trajectory.clear()
         currentState = environment.restartForNextEpisode(currentState)
     }
@@ -59,7 +60,7 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
      * Should call start() first before calling this.
      * Call canStillStep() before stepping to see if you can still step
      */
-    fun step() {
+    override fun step() {
         val action = agent.sampleActionFromState(currentState)
         val nextStateSample = environment.sampleNextStateFromStateAction(currentState, action)
         trajectory.add(currentState, action, nextStateSample.reward)
@@ -70,20 +71,20 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
     /**
      * @return If current state in current episode is in a terminating state in environment
      */
-    fun canStillStep(): Boolean {
+    override fun canStillStep(): Boolean {
         return !environment.isTerminatingState(currentState)
     }
 
     /**
      * Does nothing, since agent learns during stepping
      */
-    fun end() {}
+    override fun end() {}
 
 
     /**
      * Run one episode yielding a trajectory. Also runs policy improvement algorithm
      */
-    fun runOneEpisode() {
+    override fun runOneEpisode() {
         trajectory.clear()
         var maxTime = maxRunTimeStepsInEpisode
 
@@ -101,5 +102,9 @@ class QLearningRunner<S: State, A: Action>(var environment: Environment<S, A>, v
 
             statePointer = nextStateSample.state.clone()
         }
+    }
+
+    override fun currentPosition(): S {
+        return currentState
     }
 }

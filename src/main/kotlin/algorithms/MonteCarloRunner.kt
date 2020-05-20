@@ -1,7 +1,8 @@
 /**
  * Monte Carlo Episode / Training Runner
  */
-class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: MonteCarloAgent<S, A>) {
+class MonteCarloRunner<S: State, A: Action>(override var environment: Environment<S, A>,
+                                            override var agent: MonteCarloAgent<S, A>): GeneralRunner<S, A, S> {
 
     /**
      * Current state for agent when  start(), step(), stop() methods are used
@@ -17,7 +18,7 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
     /**
      * Stores data from current / last episode. This will be used for the Monte Carlo Agent to learn from
      */
-    val trajectory: Trajectory<S, A> = Trajectory()
+    override val trajectory: Trajectory<S, A> = Trajectory()
 
     /**
      * Prints the trajectory taken on the track as well as other info
@@ -40,7 +41,7 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
     /**
      * Start a new episode to step through. Trajectory is cleared and current state is initialized.
      */
-    fun start() {
+    override fun start() {
         trajectory.clear()
         currentState = environment.restartForNextEpisode(currentState)
     }
@@ -50,7 +51,7 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
      * Should call start() first before calling this.
      * Call canStillStep() before stepping to see if you can still step
      */
-    fun step() {
+    override fun step() {
         val action = agent.sampleActionFromState(currentState)
         val nextStateSample = environment.sampleNextStateFromStateAction(currentState, action)
         trajectory.add(currentState, action, nextStateSample.reward)
@@ -60,21 +61,21 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
     /**
      * @return If current state in current episode is in a terminating state in environment
      */
-    fun canStillStep(): Boolean {
+    override fun canStillStep(): Boolean {
         return !environment.isTerminatingState(currentState)
     }
 
     /**
      * Ends the current episode, calling policy improvement algorithm
      */
-    fun end() {
+    override fun end() {
         agent.improvePolicy(trajectory)
     }
 
     /**
      * Run one episode yielding a trajectory. Also runs policy improvement algorithm
      */
-    fun runOneEpisode() {
+    override fun runOneEpisode() {
         trajectory.clear()
         var maxTime = maxRunTimeStepsInEpisode
 
@@ -92,5 +93,9 @@ class MonteCarloRunner<S: State, A: Action>(var environment: Environment<S, A>, 
         }
 
         agent.improvePolicy(trajectory)
+    }
+
+    override fun currentPosition(): S {
+        return currentState
     }
 }

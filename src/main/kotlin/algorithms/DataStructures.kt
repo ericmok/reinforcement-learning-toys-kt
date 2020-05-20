@@ -13,6 +13,9 @@ fun <S : State> S.clone(): S {
  * The decision maker in RL Tasks
  */
 interface Agent<S: State, A: Action> {
+    var gamma: Double
+    var epsilon: Double
+    var alpha: Double
 
     /**
      * Q Values
@@ -109,6 +112,24 @@ data class Visit<S: State, A: Action>(val state: S, val action: A, var reward: D
         return "<(${state}) ${action} R:${reward} first:${isFirstVisit}>"
     }
 }
+
+interface SingleStepRunner<S: State, A: Action, C> {
+    val trajectory: Trajectory<S, A>
+    val environment: Environment<S, A>
+    val agent: Agent<S, A>
+    fun start()
+    fun step()
+    fun canStillStep(): Boolean
+    fun end()
+    fun currentPosition(): C
+}
+
+interface EpisodeRunner<S: State, A: Action> {
+    val trajectory: Trajectory<S, A>
+    fun runOneEpisode()
+}
+
+interface GeneralRunner<S: State, A: Action, C>: SingleStepRunner<S, A, C>, EpisodeRunner<S, A>
 
 /**
  * A random variable outcome in a distribution with a weight.

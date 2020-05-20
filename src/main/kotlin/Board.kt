@@ -7,7 +7,7 @@ import react.dom.style
 import react.dom.svg
 
 class BoardProps(var board: ArrayList<Array<Char>>,
-                 var runner: MonteCarloRunner<RaceTrackState, RaceTrackAction>): RProps
+                 var runner: GeneralRunner<RaceTrackState, RaceTrackAction, RaceTrackState>): RProps
 
 class Board: RComponent<BoardProps, RState>() {
 
@@ -37,8 +37,8 @@ class Board: RComponent<BoardProps, RState>() {
 
             child(BoardAgent::class) {
                 attrs {
-                    this.x = props.runner.currentState.x
-                    this.y = props.runner.currentState.y
+                    this.x = props.runner.currentPosition().x
+                    this.y = props.runner.currentPosition().y
                 }
             }
 //
@@ -52,7 +52,7 @@ class Board: RComponent<BoardProps, RState>() {
             child(TrajectoryComponent::class) {
                 attrs {
                     this.list = props.runner.trajectory.list
-                    this.monteCarloAgent = props.runner.agent
+                    this.agent = props.runner.agent
                 }
             }
         }

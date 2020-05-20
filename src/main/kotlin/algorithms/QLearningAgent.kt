@@ -1,9 +1,9 @@
 /**
  * A Q-Learning Agent
  */
-abstract class QLearningAgent<S: State, A: Action>(var gamma: Double = 1.0,
-                                                   var epsilon: Double = 0.5,
-                                                   var alpha: Double = 0.1): Agent<S, A> {
+abstract class QLearningAgent<S: State, A: Action>(override var gamma: Double = 1.0,
+                                                   override var epsilon: Double = 0.5,
+                                                   override var alpha: Double = 0.1): Agent<S, A> {
 
     override val q = HashMap<StateAction<S, A>, Double>()
     override val pi = HashMap<S, ProbabilityDistribution<A>>()

@@ -8,9 +8,9 @@
  *              Set to -1 to not use alpha and instead strictly averaging over all returns in history.
  *              (That may slow down training over time.)
  */
-abstract class MonteCarloAgent<S: State, A: Action>(var gamma: Double = 1.0,
-                                                    var epsilon: Double = 0.5,
-                                                    var alpha: Double = 0.125): Agent<S, A> {
+abstract class MonteCarloAgent<S: State, A: Action>(override var gamma: Double = 1.0,
+                                                    override var epsilon: Double = 0.5,
+                                                    override var alpha: Double = 0.125): Agent<S, A> {
 
     override val q = HashMap<StateAction<S, A>, Double>()
     override val pi = HashMap<S, ProbabilityDistribution<A>>()

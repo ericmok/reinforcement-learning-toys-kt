@@ -1,7 +1,8 @@
 /**
  * Temporal Difference Episode / Training Runner
  */
-class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var agent: SarsaAgent<S, A>) {
+class SarsaRunner<S: State, A: Action>(override var environment: Environment<S, A>,
+                                       override var agent: SarsaAgent<S, A>): GeneralRunner<S, A, StateAction<S, A>> {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -9,12 +10,12 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
      */
     val maxRunTimeStepsInEpisode = 10000
 
-    var currentPosition: StateAction<S, A> = getStartingStateAction()
+    var currentStateAction: StateAction<S, A> = getStartingStateAction()
 
     /**
      * Store trajectory for aesthetics
      */
-    val trajectory = Trajectory<S, A>()
+    override val trajectory = Trajectory<S, A>()
 
 //
 //    /**
@@ -48,9 +49,9 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
     /**
      * Start a new episode to step through. Trajectory is cleared and current state is initialized.
      */
-    fun start() {
+    override fun start() {
         trajectory.clear()
-        currentPosition = getStartingStateAction()
+        currentStateAction = getStartingStateAction()
     }
 
     /**
@@ -59,34 +60,34 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
      * Should call start() first before calling this.
      * Call canStillStep() before stepping to see if you can still step
      */
-    fun step() {
-        val nextStateSample = environment.sampleNextStateFromStateAction(currentPosition.state, currentPosition.action)
+    override fun step() {
+        val nextStateSample = environment.sampleNextStateFromStateAction(currentStateAction.state, currentStateAction.action)
         val nextAction = agent.sampleActionFromState(nextStateSample.state)
 
-        trajectory.add(currentPosition.state, currentPosition.action, nextStateSample.reward)
+        trajectory.add(currentStateAction.state, currentStateAction.action, nextStateSample.reward)
 
-        agent.improvePolicy(currentPosition.state, currentPosition.action, nextStateSample, nextAction)
+        agent.improvePolicy(currentStateAction.state, currentStateAction.action, nextStateSample, nextAction)
 
-        currentPosition = StateAction(nextStateSample.state.clone(), nextAction)
+        currentStateAction = StateAction(nextStateSample.state.clone(), nextAction)
     }
 
     /**
      * @return If current state in current episode is in a terminating state in environment
      */
-    fun canStillStep(): Boolean {
-        return !environment.isTerminatingState(currentPosition.state)
+    override fun canStillStep(): Boolean {
+        return !environment.isTerminatingState(currentStateAction.state)
     }
 
     /**
      * Does nothing, since agent learns during stepping
      */
-    fun end() {}
+    override fun end() {}
 
 
     /**
      * Run one episode yielding a trajectory. Also runs policy improvement algorithm
      */
-    fun runOneEpisode() {
+    override fun runOneEpisode() {
         trajectory.clear()
         var maxTime = maxRunTimeStepsInEpisode
 
@@ -107,5 +108,9 @@ class SarsaRunner<S: State, A: Action>(var environment: Environment<S, A>, var a
             action = nextAction
         }
 
+    }
+
+    override fun currentPosition(): StateAction<S, A> {
+        return currentStateAction
     }
 }
