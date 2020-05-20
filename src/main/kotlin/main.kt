@@ -63,9 +63,9 @@ external interface AppState: RState {
 class App: RComponent<AppProps, AppState>() {
 
     override fun AppState.init() {
-        epsilon = 0.4
+        epsilon = 0.3
         gamma = 1.0
-        alpha = 0.125
+        alpha = 0.0625
         useAlpha = true
         numberEpisodes = 0
         performance = arrayListOf()
