@@ -42,10 +42,13 @@ fun ArrayList<Array<Char>>.getDimensions(): Pair<Int, Int> {
     return (this[0].size) to this.size
 }
 
-external interface AppState: RState {
+external interface AppProps: RProps {
     var runner: GeneralRunner<RaceTrackState, RaceTrackAction>
     var environment: RaceTrack
     var agent: Agent<RaceTrackState, RaceTrackAction>
+}
+
+external interface AppState: RState {
     var autoStepInterval: Int
     var epsilon: Double
     var gamma: Double
@@ -57,12 +60,9 @@ external interface AppState: RState {
     var autoEpisodeIsRunning: Boolean
 }
 
-class App: RComponent<RProps, AppState>() {
+class App: RComponent<AppProps, AppState>() {
 
     override fun AppState.init() {
-        environment = RaceTrack()
-        agent = RacecarSarsaAgent()
-        runner = SarsaRunner(environment, agent as RacecarSarsaAgent)
         epsilon = 0.4
         gamma = 1.0
         alpha = 0.125
@@ -77,7 +77,7 @@ class App: RComponent<RProps, AppState>() {
 
     fun startOver() {
         stopAutoRuns()
-        state.runner.start()
+        props.runner.start()
     }
 
     fun stopAutoRuns() {
@@ -92,22 +92,22 @@ class App: RComponent<RProps, AppState>() {
     fun runAutoStep() {
         stopAutoRuns()
         if (!state.singleStepMode) {
-            state.runner.start()
+            props.runner.start()
             setState {
                 singleStepMode = true
             }
         }
         setState {
             autoStepInterval = window.setInterval({
-                if (!state.runner.canStillStep()) {
-                    state.runner.end()
-                    state.runner.start()
+                if (!props.runner.canStillStep()) {
+                    props.runner.end()
+                    props.runner.start()
                     setState {
                         numberEpisodes += 1
                     }
-                    state.performance.add(state.runner.trajectory.size)
+                    state.performance.add(props.runner.trajectory.size)
                 }
-                state.runner.step()
+                props.runner.step()
 
                 forceUpdate()
             }, 32)
@@ -117,19 +117,19 @@ class App: RComponent<RProps, AppState>() {
     fun runSingleStep() {
         stopAutoRuns()
         if (!state.singleStepMode) {
-            state.runner.start()
+            props.runner.start()
             setState {
                 singleStepMode = true
                 autoEpisodeIsRunning = false
             }
         }
-        state.runner.step()
+        props.runner.step()
         forceUpdate()
     }
 
     fun runOneEpisode() {
         stopAutoRuns()
-        state.runner.runOneEpisode()
+        props.runner.runOneEpisode()
         setState {
             this.autoEpisodeIsRunning = false
             this.singleStepMode = false
@@ -138,11 +138,11 @@ class App: RComponent<RProps, AppState>() {
     }
 
     private fun autoEpisodeTimeoutFunction() {
-        state.runner.runOneEpisode()
+        props.runner.runOneEpisode()
         setState {
             numberEpisodes += 1
         }
-        state.performance.add(state.runner.trajectory.size)
+        state.performance.add(props.runner.trajectory.size)
 
         window.requestAnimationFrame {
             if (state.autoEpisodeIsRunning) {
@@ -163,37 +163,44 @@ class App: RComponent<RProps, AppState>() {
         styledDiv {
             css {
                 declarations["grid-area"] = "params"
+                padding = "10px"
+                boxSizing = BoxSizing.borderBox
             }
             div {
+                label {
+                    +"Epsilon (affects exploration):"
+                }
+                br {}
                 styledInput {
                     css {
                         +Styles.inputRange
                     }
                     attrs {
                         type = InputType.range
-                        min = "0.01"
+                        min = "0.0"
                         max = "1.0"
-                        step = "0.05"
+                        step = "0.025"
                         value = state.epsilon.toString()
 
                         onChangeFunction = { ev ->
                             val newValue = (ev.target as HTMLInputElement).value.toDouble()
                             println(newValue)
-                            state.runner.agent.epsilon = newValue
+                            props.runner.agent.epsilon = newValue
                             setState {
                                 this.epsilon = newValue
                             }
                         }
                     }
                 }
-                label {
-                    +"Epsilon: "
-                }
                 span {
                     +state.epsilon.toString()
                 }
             }
             div {
+                label {
+                    +"Gamma (affects discounting):"
+                }
+                br {}
                 styledInput {
                     css {
                         +Styles.inputRange
@@ -202,54 +209,58 @@ class App: RComponent<RProps, AppState>() {
                         type = InputType.range
                         min = "0.00"
                         max = "1.0"
-                        step = "0.05"
+                        step = "0.00625"
                         value = state.gamma.toString()
 
                         onChangeFunction = { ev ->
                             val newValue = (ev.target as HTMLInputElement).value.toDouble()
                             println(newValue)
-                            state.runner.agent.gamma = newValue
+                            props.runner.agent.gamma = newValue
                             setState {
                                 this.gamma = newValue
                             }
                         }
                     }
                 }
-                label {
-                    +"Gamma: "
-                }
+
                 span {
                     +state.gamma.toString()
                 }
             }
             div {
-                styledFieldSet {
-                    css {
-                        maxWidth = LinearDimension("500px")
-                    }
-                    legend {
-                        label {
-                            +"Use Fixed Alpha"
-                        }
-                        input {
-                            attrs {
-                                type = InputType.checkBox
-                                checked = state.useAlpha
-
-
-                                onChangeFunction = { ev ->
-                                    setState {
-                                        useAlpha = !state.useAlpha //(ev.target as HTMLInputElement).checked
-                                    }
-
-                                    if (!state.useAlpha) {
-                                        state.runner.agent.alpha = -1.0
-                                    }
-                                }
-                            }
-                        }
-                    }
+                // This code sets the useAlpha parameter...
+                // This was for the MC agent, but it isn't generalizable to QLearning and Sarsa though...
+//                styledFieldSet {
+//                    css {
+//                        maxWidth = LinearDimension("500px")
+//                    }
+//                    legend {
+//                        label {
+//                            +"Use Fixed Alpha"
+//                        }
+//                        input {
+//                            attrs {
+//                                type = InputType.checkBox
+//                                checked = state.useAlpha
+//
+//
+//                                onChangeFunction = { ev ->
+//                                    setState {
+//                                        useAlpha = !state.useAlpha //(ev.target as HTMLInputElement).checked
+//                                    }
+//
+//                                    if (!state.useAlpha) {
+//                                        props.runner.agent.alpha = -1.0
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
                     styledDiv {
+                        label {
+                            +"Alpha (affects Q update amount): "
+                        }
+                        br {}
                         styledInput {
                             css {
                                 +Styles.inputRange
@@ -265,7 +276,7 @@ class App: RComponent<RProps, AppState>() {
                                 onChangeFunction = { ev ->
                                     val newValue = (ev.target as HTMLInputElement).value.toDouble()
                                     println(newValue)
-                                    state.runner.agent.alpha = newValue
+                                    props.runner.agent.alpha = newValue
                                     setState {
                                         this.alpha = newValue
                                     }
@@ -278,22 +289,19 @@ class App: RComponent<RProps, AppState>() {
                                     opacity = 0.5
                                 }
                             }
-                            label {
-                                +"Alpha: "
-                            }
                             span {
                                 +state.alpha.toString()
                             }
                         }
 
                     }
-                }
+//                }
             }
 
             div {
                 div {
                     +"Trajectory Length: "
-                    +state.runner.trajectory.size.toString()
+                    +props.runner.trajectory.size.toString()
                 }
                 div {
                     +"Number episodes: "
@@ -309,6 +317,8 @@ class App: RComponent<RProps, AppState>() {
                 declarations["grid-area"] = "controls"
                 display = Display.grid
 //                gridTemplateColumns = GridTemplateColumns("1fr 1fr")
+                padding = "10px"
+                boxSizing = BoxSizing.borderBox
             }
             styledDiv {
                 h4 {+"Per Episode Runs"}
@@ -415,17 +425,11 @@ class App: RComponent<RProps, AppState>() {
                 display = Display.grid
                 gridTemplateColumns = GridTemplateColumns("2fr 1fr")
                 gridTemplateAreas = GridTemplateAreas("""
-                    "header header"
                     "board params"
                     "board controls"
-                    "footer footer"
                 """.trimIndent())
-            }
-            styledH1 {
-                css {
-                    this.declarations["grid-area"] = "header"
-                }
-                +"Reinforcement Learning"
+                padding = "10px"
+                boxSizing = BoxSizing.borderBox
             }
             styledDiv {
                 css {
@@ -433,8 +437,8 @@ class App: RComponent<RProps, AppState>() {
                 }
                 child(Board::class) {
                     attrs {
-                        runner = state.runner
-                        board = state.environment.board
+                        runner = props.runner
+                        board = props.environment.board
 //                trajectory = state.runner.trajectory
                     }
                 }
@@ -460,7 +464,39 @@ class App: RComponent<RProps, AppState>() {
 
 fun draw() {
     render(document.getElementById("app")) {
-        child(App::class) {}
+        h1 {
+            +"Reinforcement Learning Toy"
+        }
+        h2 {
+            +"Monte Carlo"
+        }
+        child(App::class) {
+            this.attrs {
+                environment = RaceTrack()
+                agent = RacecarMonteCarloAgent()
+                runner = MonteCarloRunner(environment, agent as RacecarMonteCarloAgent)
+            }
+        }
+        h2 {
+            +"Q Learning"
+        }
+        child(App::class) {
+            this.attrs {
+                environment = RaceTrack()
+                agent = RacecarQLearningAgent()
+                runner = QLearningRunner(environment, agent as RacecarQLearningAgent)
+            }
+        }
+        h2 {
+            +"Sarsa"
+        }
+        child(App::class) {
+            this.attrs {
+                environment = RaceTrack()
+                agent = RacecarSarsaAgent()
+                runner = SarsaRunner(environment, agent as RacecarSarsaAgent)
+            }
+        }
     }
 }
 
