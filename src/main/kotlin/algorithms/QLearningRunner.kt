@@ -2,7 +2,7 @@
  * Q Learning Runner
  */
 class QLearningRunner<S: State, A: Action>(override var environment: Environment<S, A>,
-                                           override var agent: QLearningAgent<S, A>): GeneralRunner<S, A, S> {
+                                           override var agent: QLearningAgent<S, A>): GeneralRunner<S, A> {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -13,7 +13,7 @@ class QLearningRunner<S: State, A: Action>(override var environment: Environment
     /**
      * Current state for agent when  start(), step(), stop() methods are used
      */
-    var currentState: S = environment.restartForNextEpisode()
+    override var currentState: S = environment.restartForNextEpisode()
 
     /**
      * Stores one episode's trajectory. Should get cleared after each episode, using reset()
@@ -102,9 +102,5 @@ class QLearningRunner<S: State, A: Action>(override var environment: Environment
 
             statePointer = nextStateSample.state.clone()
         }
-    }
-
-    override fun currentPosition(): S {
-        return currentState
     }
 }

@@ -113,7 +113,7 @@ data class Visit<S: State, A: Action>(val state: S, val action: A, var reward: D
     }
 }
 
-interface SingleStepRunner<S: State, A: Action, C> {
+interface SingleStepRunner<S: State, A: Action> {
     val trajectory: Trajectory<S, A>
     val environment: Environment<S, A>
     val agent: Agent<S, A>
@@ -121,7 +121,7 @@ interface SingleStepRunner<S: State, A: Action, C> {
     fun step()
     fun canStillStep(): Boolean
     fun end()
-    fun currentPosition(): C
+    val currentState: S
 }
 
 interface EpisodeRunner<S: State, A: Action> {
@@ -129,7 +129,7 @@ interface EpisodeRunner<S: State, A: Action> {
     fun runOneEpisode()
 }
 
-interface GeneralRunner<S: State, A: Action, C>: SingleStepRunner<S, A, C>, EpisodeRunner<S, A>
+interface GeneralRunner<S: State, A: Action>: SingleStepRunner<S, A>, EpisodeRunner<S, A>
 
 /**
  * A random variable outcome in a distribution with a weight.

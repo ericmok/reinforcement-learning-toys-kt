@@ -2,7 +2,7 @@
  * Temporal Difference Episode / Training Runner
  */
 class SarsaRunner<S: State, A: Action>(override var environment: Environment<S, A>,
-                                       override var agent: SarsaAgent<S, A>): GeneralRunner<S, A, StateAction<S, A>> {
+                                       override var agent: SarsaAgent<S, A>): GeneralRunner<S, A> {
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -11,6 +11,10 @@ class SarsaRunner<S: State, A: Action>(override var environment: Environment<S, 
     val maxRunTimeStepsInEpisode = 10000
 
     var currentStateAction: StateAction<S, A> = getStartingStateAction()
+
+    override val currentState: S get() {
+        return currentStateAction.state
+    }
 
     /**
      * Store trajectory for aesthetics
@@ -108,9 +112,5 @@ class SarsaRunner<S: State, A: Action>(override var environment: Environment<S, 
             action = nextAction
         }
 
-    }
-
-    override fun currentPosition(): StateAction<S, A> {
-        return currentStateAction
     }
 }

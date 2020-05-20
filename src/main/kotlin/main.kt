@@ -43,7 +43,7 @@ fun ArrayList<Array<Char>>.getDimensions(): Pair<Int, Int> {
 }
 
 external interface AppState: RState {
-    var runner: GeneralRunner<RaceTrackState, RaceTrackAction, RaceTrackState>
+    var runner: GeneralRunner<RaceTrackState, RaceTrackAction>
     var environment: RaceTrack
     var agent: Agent<RaceTrackState, RaceTrackAction>
     var autoStepInterval: Int
@@ -61,8 +61,8 @@ class App: RComponent<RProps, AppState>() {
 
     override fun AppState.init() {
         environment = RaceTrack()
-        agent = RacecarQLearningAgent()
-        runner = QLearningRunner(environment, agent as RacecarQLearningAgent)
+        agent = RacecarSarsaAgent()
+        runner = SarsaRunner(environment, agent as RacecarSarsaAgent)
         epsilon = 0.4
         gamma = 1.0
         alpha = 0.125

@@ -2,12 +2,12 @@
  * Monte Carlo Episode / Training Runner
  */
 class MonteCarloRunner<S: State, A: Action>(override var environment: Environment<S, A>,
-                                            override var agent: MonteCarloAgent<S, A>): GeneralRunner<S, A, S> {
+                                            override var agent: MonteCarloAgent<S, A>): GeneralRunner<S, A> {
 
     /**
      * Current state for agent when  start(), step(), stop() methods are used
      */
-    var currentState: S = environment.restartForNextEpisode()
+    override var currentState: S = environment.restartForNextEpisode()
 
     /**
      * A max is required because termination via random walk within a finite time span is NOT guaranteed.
@@ -93,9 +93,5 @@ class MonteCarloRunner<S: State, A: Action>(override var environment: Environmen
         }
 
         agent.improvePolicy(trajectory)
-    }
-
-    override fun currentPosition(): S {
-        return currentState
     }
 }
