@@ -74,18 +74,18 @@ open class RaceTrack: Environment<RaceTrackState, RaceTrackAction> {
      */
     fun load() {
         var track = """
-            @@@@@@@@@@@@@@@@@@@@@@
-            @            @@    2 @
-            @            @@      @
-            @            @@      @
-            @            @@      @
-            @                    @
-            @                    @
-            @                    @
-            @     @@             @
-            @     @@             @
-            @ 1   @@             @
-            @@@@@@@@@@@@@@@@@@@@@@
+            @@@@@@@@@@@@@@@@@@@@@
+            @           @@    2 @
+            @           @@      @
+            @           @@      @
+            @           @@      @
+            @                   @
+            @                   @
+            @                   @
+            @     @@            @
+            @     @@            @
+            @ 1   @@            @
+            @@@@@@@@@@@@@@@@@@@@@
         """.trimIndent()
 
         val lines = track.lines()
