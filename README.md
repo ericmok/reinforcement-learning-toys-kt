@@ -54,7 +54,14 @@ nor is there a random acceleration failure.
 
 I might add these later :)
 
-Here's an cutoff example output running the Monte Carlo Agent:
+Here's an cutoff example output running the Q Learning Agent:
+
+![Q_Learning 100_Episodes](/images/qlearning_100.jpg)
+![Q_Learning 500_Episodes](/images/qlearning_500.jpg)
+![Q_Learning 1000_Episodes](/images/qlearning_1000.jpg)
+
+
+Monte Carlo console output:
 
 ```
 
